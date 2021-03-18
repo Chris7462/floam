@@ -1,4 +1,4 @@
-// Author of FLOAM: Wang Han 
+// Author of FLOAM: Wang Han
 // Email wh200720041@gmail.com
 // Homepage https://wanghan.pro
 
@@ -13,7 +13,7 @@ void LaserMappingClass::init(double map_resolution){
 			std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> map_depth_temp;
 			for(int k=0;k<LASER_CELL_RANGE_VERTICAL*2+1;k++){
 				pcl::PointCloud<pcl::PointXYZI>::Ptr point_cloud_temp(new pcl::PointCloud<pcl::PointXYZI>);
-				map_depth_temp.push_back(point_cloud_temp);	
+				map_depth_temp.push_back(point_cloud_temp);
 			}
 			map_height_temp.push_back(map_depth_temp);
 		}
@@ -127,7 +127,7 @@ void LaserMappingClass::checkPoints(int& x, int& y, int& z){
 		z++;
 	}
 
-	//initialize 
+	//initialize
 	//create object if area is null
 	for(int i=x-LASER_CELL_RANGE_HORIZONTAL;i<x+LASER_CELL_RANGE_HORIZONTAL+1;i++){
 		for(int j=y-LASER_CELL_RANGE_HORIZONTAL;j<y+LASER_CELL_RANGE_HORIZONTAL+1;j++){
@@ -136,17 +136,14 @@ void LaserMappingClass::checkPoints(int& x, int& y, int& z){
 					pcl::PointCloud<pcl::PointXYZI>::Ptr point_cloud_temp(new pcl::PointCloud<pcl::PointXYZI>());
 					map[i][j][k] = point_cloud_temp;
 				}
-
 			}
-				
 		}
-
 	}
 }
 
-//update points to map 
+//update points to map
 void LaserMappingClass::updateCurrentPointsToMap(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pc_in, const Eigen::Isometry3d& pose_current){
-	
+
 	int currentPosIdX = int(std::floor(pose_current.translation().x() / LASER_CELL_WIDTH + 0.5)) + origin_in_map_x;
 	int currentPosIdY = int(std::floor(pose_current.translation().y() / LASER_CELL_HEIGHT + 0.5)) + origin_in_map_y;
 	int currentPosIdZ = int(std::floor(pose_current.translation().z() / LASER_CELL_DEPTH + 0.5)) + origin_in_map_z;
@@ -156,7 +153,7 @@ void LaserMappingClass::updateCurrentPointsToMap(const pcl::PointCloud<pcl::Poin
 
 	pcl::PointCloud<pcl::PointXYZI>::Ptr transformed_pc(new pcl::PointCloud<pcl::PointXYZI>());
 	pcl::transformPointCloud(*pc_in, *transformed_pc, pose_current.cast<float>());
-	
+
 	//save points
 	for (int i = 0; i < (int)transformed_pc->points.size(); i++)
 	{
@@ -168,21 +165,18 @@ void LaserMappingClass::updateCurrentPointsToMap(const pcl::PointCloud<pcl::Poin
 		int currentPointIdZ = int(std::floor(point_temp.z / LASER_CELL_DEPTH + 0.5)) + origin_in_map_z;
 
 		map[currentPointIdX][currentPointIdY][currentPointIdZ]->push_back(point_temp);
-		
+
 	}
-	
-	//filtering points 
+
+	//filtering points
 	for(int i=currentPosIdX-LASER_CELL_RANGE_HORIZONTAL;i<currentPosIdX+LASER_CELL_RANGE_HORIZONTAL+1;i++){
 		for(int j=currentPosIdY-LASER_CELL_RANGE_HORIZONTAL;j<currentPosIdY+LASER_CELL_RANGE_HORIZONTAL+1;j++){
 			for(int k=currentPosIdZ-LASER_CELL_RANGE_VERTICAL;k<currentPosIdZ+LASER_CELL_RANGE_VERTICAL+1;k++){
 				downSizeFilter.setInputCloud(map[i][j][k]);
 				downSizeFilter.filter(*(map[i][j][k]));
 			}
-				
 		}
-
 	}
-
 }
 
 pcl::PointCloud<pcl::PointXYZI>::Ptr LaserMappingClass::getMap(void){

@@ -1,4 +1,4 @@
-// Author of FLOAM: Wang Han 
+// Author of FLOAM: Wang Han
 // Email wh200720041@gmail.com
 // Homepage https://wanghan.pro
 #ifndef _LIDAR_OPTIMIZATION_ANALYTIC_H_
@@ -38,7 +38,7 @@ class SurfNormAnalyticCostFunction : public ceres::SizedCostFunction<1, 7> {
 
 class PoseSE3Parameterization : public ceres::LocalParameterization {
 public:
-	
+
     PoseSE3Parameterization() {}
     virtual ~PoseSE3Parameterization() {}
     virtual bool Plus(const double* x, const double* delta, double* x_plus_delta) const;

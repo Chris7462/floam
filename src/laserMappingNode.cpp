@@ -1,4 +1,4 @@
-// Author of FLOAM: Wang Han 
+// Author of FLOAM: Wang Han
 // Email wh200720041@gmail.com
 // Homepage https://wanghan.pro
 
@@ -56,31 +56,31 @@ void laser_mapping(){
             //read data
             mutex_lock.lock();
             if(!pointCloudBuf.empty() && pointCloudBuf.front()->header.stamp.toSec()<odometryBuf.front()->header.stamp.toSec()-0.5*lidar_param.scan_period){
-                ROS_WARN("time stamp unaligned error and pointcloud discarded, pls check your data --> laser mapping node"); 
+                ROS_WARN("time stamp unaligned error and pointcloud discarded, pls check your data --> laser mapping node");
                 pointCloudBuf.pop();
                 mutex_lock.unlock();
-                continue;              
+                continue;
             }
 
             if(!odometryBuf.empty() && odometryBuf.front()->header.stamp.toSec() < pointCloudBuf.front()->header.stamp.toSec()-0.5*lidar_param.scan_period){
                 odometryBuf.pop();
                 ROS_INFO("time stamp unaligned with path final, pls check your data --> laser mapping node");
                 mutex_lock.unlock();
-                continue;  
+                continue;
             }
 
-            //if time aligned 
+            //if time aligned
             pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_in(new pcl::PointCloud<pcl::PointXYZI>());
             pcl::fromROSMsg(*pointCloudBuf.front(), *pointcloud_in);
             ros::Time pointcloud_time = (pointCloudBuf.front())->header.stamp;
 
             Eigen::Isometry3d current_pose = Eigen::Isometry3d::Identity();
-            current_pose.rotate(Eigen::Quaterniond(odometryBuf.front()->pose.pose.orientation.w,odometryBuf.front()->pose.pose.orientation.x,odometryBuf.front()->pose.pose.orientation.y,odometryBuf.front()->pose.pose.orientation.z));  
+            current_pose.rotate(Eigen::Quaterniond(odometryBuf.front()->pose.pose.orientation.w,odometryBuf.front()->pose.pose.orientation.x,odometryBuf.front()->pose.pose.orientation.y,odometryBuf.front()->pose.pose.orientation.z));
             current_pose.pretranslate(Eigen::Vector3d(odometryBuf.front()->pose.pose.position.x,odometryBuf.front()->pose.pose.position.y,odometryBuf.front()->pose.pose.position.z));
             pointCloudBuf.pop();
             odometryBuf.pop();
             mutex_lock.unlock();
-            
+
 
             laserMapping.updateCurrentPointsToMap(pointcloud_in,current_pose);
 
@@ -89,8 +89,8 @@ void laser_mapping(){
             pcl::toROSMsg(*pc_map, PointsMsg);
             PointsMsg.header.stamp = pointcloud_time;
             PointsMsg.header.frame_id = "map";
-            map_pub.publish(PointsMsg); 
-            
+            map_pub.publish(PointsMsg);
+
 
 
         }
@@ -111,8 +111,8 @@ int main(int argc, char **argv)
     double max_dis = 60.0;
     double min_dis = 2.0;
     double map_resolution = 0.4;
-    nh.getParam("/scan_period", scan_period); 
-    nh.getParam("/vertical_angle", vertical_angle); 
+    nh.getParam("/scan_period", scan_period);
+    nh.getParam("/vertical_angle", vertical_angle);
     nh.getParam("/max_dis", max_dis);
     nh.getParam("/min_dis", min_dis);
     nh.getParam("/scan_line", scan_line);

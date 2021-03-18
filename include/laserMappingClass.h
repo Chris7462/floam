@@ -1,4 +1,4 @@
-// Author of FLOAM: Wang Han 
+// Author of FLOAM: Wang Han
 // Email wh200720041@gmail.com
 // Homepage https://wanghan.pro
 
@@ -33,7 +33,7 @@
 #define LASER_CELL_RANGE_VERTICAL 2
 
 
-class LaserMappingClass 
+class LaserMappingClass
 {
 
     public:
@@ -51,7 +51,7 @@ class LaserMappingClass
 		int map_depth;
 		std::vector<std::vector<std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>>> map;
 		pcl::VoxelGrid<pcl::PointXYZI> downSizeFilter;
-		
+
 		void addWidthCellNegative(void);
 		void addWidthCellPositive(void);
 		void addHeightCellNegative(void);

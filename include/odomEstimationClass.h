@@ -1,4 +1,4 @@
-// Author of FLOAM: Wang Han 
+// Author of FLOAM: Wang Han
 // Email wh200720041@gmail.com
 // Homepage https://wanghan.pro
 #ifndef _ODOM_ESTIMATION_CLASS_H_
@@ -33,13 +33,13 @@
 #include "lidarOptimization.h"
 #include <ros/ros.h>
 
-class OdomEstimationClass 
+class OdomEstimationClass
 {
 
     public:
     	OdomEstimationClass();
-    	
-		void init(lidar::Lidar lidar_param, double map_resolution);	
+
+		void init(lidar::Lidar lidar_param, double map_resolution);
 		void initMapWithPoints(const pcl::PointCloud<pcl::PointXYZI>::Ptr& edge_in, const pcl::PointCloud<pcl::PointXYZI>::Ptr& surf_in);
 		void updatePointsToMap(const pcl::PointCloud<pcl::PointXYZI>::Ptr& edge_in, const pcl::PointCloud<pcl::PointXYZI>::Ptr& surf_in);
 		void getMap(pcl::PointCloud<pcl::PointXYZI>::Ptr& laserCloudMap);
@@ -66,7 +66,7 @@ class OdomEstimationClass
 		//local map
 		pcl::CropBox<pcl::PointXYZI> cropBoxFilter;
 
-		//optimization count 
+		//optimization count
 		int optimization_count;
 
 		//function
