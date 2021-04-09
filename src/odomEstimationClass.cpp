@@ -47,7 +47,6 @@ void OdomEstimationClass::updatePointsToMap(const pcl::PointCloud<pcl::PointXYZI
   pcl::PointCloud<pcl::PointXYZI>::Ptr downsampledEdgeCloud(new pcl::PointCloud<pcl::PointXYZI>());
   pcl::PointCloud<pcl::PointXYZI>::Ptr downsampledSurfCloud(new pcl::PointCloud<pcl::PointXYZI>());
   downSamplingToMap(edge_in,downsampledEdgeCloud,surf_in,downsampledSurfCloud);
-  //ROS_WARN("point nyum%d,%d",(int)downsampledEdgeCloud->points.size(), (int)downsampledSurfCloud->points.size());
 
   if (laserCloudCornerMap->points.size() > 10 && laserCloudSurfMap->points.size() > 50) {
     kdtreeEdgeMap->setInputCloud(laserCloudCornerMap);
@@ -91,7 +90,6 @@ void OdomEstimationClass::pointAssociateToMap(const pcl::PointXYZI *const pi, pc
   po->y = point_w.y();
   po->z = point_w.z();
   po->intensity = pi->intensity;
-    //po->intensity = 1.0;
 }
 
 void OdomEstimationClass::downSamplingToMap(const pcl::PointCloud<pcl::PointXYZI>::Ptr &edge_pc_in, pcl::PointCloud<pcl::PointXYZI>::Ptr &edge_pc_out, const pcl::PointCloud<pcl::PointXYZI>::Ptr &surf_pc_in, pcl::PointCloud<pcl::PointXYZI>::Ptr &surf_pc_out)

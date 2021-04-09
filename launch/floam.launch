@@ -19,8 +19,7 @@
 
 
     <param name="scan_period" value="0.1" />
-    <param name="vertical_angle" type="double" value="2.0" />
-    <param name="max_dis" type="double" value="90.0" />
+    <param name="max_dis" type="double" value="60.0" />
     <param name="min_dis" type="double" value="3.0" />
 
     <!-- Run FLOAM -->

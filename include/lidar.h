@@ -15,8 +15,6 @@ class Lidar
 
     void setLines(double num_lines_in);
     void setScanPeriod(double scan_period_in);
-    void setVerticalAngle(double vertical_angle_in);
-    void setVerticalResolution(double vertical_angle_resolution_in);
     //by default is 100. pls do not change
     void setMaxDistance(double max_distance_in);
     void setMinDistance(double min_distance_in);
@@ -26,10 +24,6 @@ class Lidar
     double max_distance;
     double min_distance;
     int points_per_line;
-    double horizontal_angle_resolution;
-    double horizontal_angle;
-    double vertical_angle_resolution;
-    double vertical_angle;
 };
 
 }
