@@ -3,9 +3,7 @@ Panels:
     Help Height: 0
     Name: Displays
     Property Tree Widget:
-      Expanded:
-        - /Global Options1
-        - /TF1/Frames1
+      Expanded: ~
       Splitter Ratio: 0.5
     Tree Height: 529
   - Class: rviz/Selection
@@ -49,7 +47,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 200
+      Plane Cell Count: 300
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: rviz/Image
@@ -84,11 +82,11 @@ Visualization Manager:
         map:
           Value: true
         velodyne:
-          Value: true
+          Value: false
         world:
           Value: false
       Marker Alpha: 1
-      Marker Scale: 30
+      Marker Scale: 40
       Name: TF
       Show Arrows: false
       Show Axes: true
@@ -143,7 +141,7 @@ Visualization Manager:
       Buffer Length: 1
       Class: rviz/Path
       Color: 239; 41; 41
-      Enabled: true
+      Enabled: false
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
@@ -162,7 +160,7 @@ Visualization Manager:
       Shaft Length: 0.10000000149011612
       Topic: /gt/trajectory
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -223,7 +221,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 317.49468994140625
+      Distance: 398.2653503417969
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -231,17 +229,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 2.7634973526000977
-        Y: 21.246068954467773
-        Z: -21.454404830932617
+        X: -3.3039605617523193
+        Y: 87.15830993652344
+        Z: -32.18515396118164
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8047968149185181
+      Pitch: 1.5197961330413818
       Target Frame: body
-      Yaw: 1.5750006437301636
+      Yaw: 1.6100006103515625
     Saved: ~
 Window Geometry:
   Displays:

@@ -4,7 +4,6 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Global Options1
         - /TF1/Frames1
       Splitter Ratio: 0.5
     Tree Height: 498
@@ -49,7 +48,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 100
+      Plane Cell Count: 300
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: rviz/Image
@@ -80,7 +79,7 @@ Visualization Manager:
         cam03:
           Value: false
         imu:
-          Value: true
+          Value: false
         map:
           Value: true
         velodyne:
@@ -88,7 +87,7 @@ Visualization Manager:
         world:
           Value: false
       Marker Alpha: 1
-      Marker Scale: 30
+      Marker Scale: 40
       Name: TF
       Show Arrows: false
       Show Axes: true
@@ -123,8 +122,8 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: false
-      Invert Rainbow: false
+      Enabled: true
+      Invert Rainbow: true
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
       Name: raw_data
@@ -138,7 +137,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Alpha: 0.699999988079071
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -171,7 +170,7 @@ Visualization Manager:
       Buffer Length: 1
       Class: rviz/Path
       Color: 239; 41; 41
-      Enabled: true
+      Enabled: false
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
@@ -190,7 +189,7 @@ Visualization Manager:
       Shaft Length: 0.10000000149011612
       Topic: /gt/trajectory
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -243,7 +242,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 214.61326599121094
+      Distance: 341.7052001953125
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -251,17 +250,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -60.93077087402344
-        Y: 9.568419456481934
+        X: -58.5550537109375
+        Y: 59.94948196411133
         Z: 6.388764450093731e-05
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.2303978204727173
+      Pitch: 1.3503977060317993
       Target Frame: body
-      Yaw: 3.335411310195923
+      Yaw: 3.2754111289978027
     Saved: ~
 Window Geometry:
   Displays:
