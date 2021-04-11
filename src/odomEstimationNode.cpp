@@ -135,7 +135,7 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "main");
   ros::NodeHandle nh;
 
-  int scan_line = 64;
+  int scan_line = 32;
   double scan_period = 0.1;
   double max_dis = 60.0;
   double min_dis = 2.0;
