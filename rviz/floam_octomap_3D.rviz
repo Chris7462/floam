@@ -3,7 +3,8 @@ Panels:
     Help Height: 0
     Name: Displays
     Property Tree Widget:
-      Expanded: ~
+      Expanded:
+        - /TF1
       Splitter Ratio: 0.5221444964408875
     Tree Height: 841
   - Class: rviz/Selection
@@ -60,7 +61,7 @@ Visualization Manager:
         map:
           Value: true
       Marker Alpha: 1
-      Marker Scale: 40
+      Marker Scale: 30
       Name: TF
       Show Arrows: false
       Show Axes: true
@@ -159,7 +160,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 87.14958953857422
+      Distance: 97.6075439453125
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1

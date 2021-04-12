@@ -61,7 +61,7 @@ Visualization Manager:
         map:
           Value: true
       Marker Alpha: 1
-      Marker Scale: 40
+      Marker Scale: 30
       Name: TF
       Show Arrows: false
       Show Axes: true
