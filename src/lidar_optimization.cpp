@@ -19,12 +19,14 @@ void FLOAMVertex::oplusImpl(const double* update)
   // _estimate = _estimate * Sophus::SE3d::exp(delta_r); // right multiplication
 }
 
-bool FLOAMVertex::read(std::istream& in)
+bool FLOAMVertex::read(std::istream&)
 {
+  return false;
 }
 
-bool FLOAMVertex::write(std::ostream& out) const
+bool FLOAMVertex::write(std::ostream&) const
 {
+  return false;
 }
 
 FLOAMEdge::FLOAMEdge(Eigen::Vector3d pa, Eigen::Vector3d pb, Eigen::Vector3d cp)
@@ -61,12 +63,14 @@ void FLOAMEdge::linearizeOplus()
   _jacobianOplusXi.block<1, 6>(0, 0) = -nu.transpose() / nu.norm() * skew_de * dp_by_se3 / de_norm;
 }
 
-bool FLOAMEdge::read(std::istream& in)
+bool FLOAMEdge::read(std::istream&)
 {
+  return false;
 }
 
-bool FLOAMEdge::write(std::ostream& out) const
+bool FLOAMEdge::write(std::ostream&) const
 {
+  return false;
 }
 
 
@@ -95,10 +99,12 @@ void FLOAMSurf::linearizeOplus()
   _jacobianOplusXi.block<1, 6>(0, 0) = p_n.transpose() * dp_by_se3;
 }
 
-bool FLOAMSurf::read(std::istream& in)
+bool FLOAMSurf::read(std::istream&)
 {
+  return false;
 }
 
-bool FLOAMSurf::write(std::ostream& out) const
+bool FLOAMSurf::write(std::ostream&) const
 {
+  return false;
 }
