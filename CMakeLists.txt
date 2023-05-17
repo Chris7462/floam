@@ -18,10 +18,13 @@ find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
-#find_package(Ceres REQUIRED)
+find_package(Sophus REQUIRED)
+find_package(g2o REQUIRED)
+
 
 add_executable(laser_processing_node
   src/laser_processing_node.cpp
@@ -47,53 +50,69 @@ target_link_libraries(laser_processing_node
 
 target_compile_features(laser_processing_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
-# add_executable(odom_estimation_node
-#   src/odom_estimation_node.cpp
-#   src/odom_estimation.cpp
-#   src/odom_estimation_class.cpp
-#   src/lidar_optimization.cpp
-#   src/lidar.cpp
-# )
+add_executable(odom_estimation_node
+  src/odom_estimation_node.cpp
+  src/odom_estimation.cpp
+  src/odom_estimation_class.cpp
+  src/lidar_optimization.cpp
+  src/lidar.cpp
+)
 
-# ament_target_dependencies(odom_estimation_node
-#   rclcpp
-#   sensor_msgs
-#   nav_msgs
-#   geometry_msgs
-#   tf2
-#   tf2_ros
-#   pcl_conversions
-#   Eigen3
-#   #CERES
-# )
+ament_target_dependencies(odom_estimation_node
+  rclcpp
+  sensor_msgs
+  nav_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  pcl_conversions
+  Eigen3
+  Sophus
+)
 
-# target_link_libraries(odom_estimation_node
-#   ${PCL_LIBRARIES}
-#   #${EIGEN3_LIBRARIES}
-#   ${CERES_LIBRARIES}
-# )
+target_include_directories(odom_estimation_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+  ${PCL_INCLUDE_DIRS})
 
-# add_executable(laser_mapping_node
-#   src/laser_mapping_node.cpp
-#   src/laser_mapping.cpp
-#   src/laser_mapping_class.cpp
-#   src/lidar.cpp
-# )
+target_link_libraries(odom_estimation_node
+  ${PCL_LIBRARIES}
+  g2o::core
+  g2o::solver_dense
+)
 
-# ament_target_dependencies(laser_mapping_node
-#   rclcpp
-#   sensor_msgs
-#   nav_msgs
-#   pcl_conversions
-#   Eigen3
-# )
+target_compile_features(odom_estimation_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
-# target_link_libraries(laser_mapping_node
-#   ${PCL_LIBRARIES}
-# )
+add_executable(laser_mapping_node
+  src/laser_mapping_node.cpp
+  src/laser_mapping.cpp
+  src/laser_mapping_class.cpp
+  src/lidar.cpp
+)
 
-#install(TARGETS laser_processing_node odom_estimation_node laser_mapping_node
-install(TARGETS laser_processing_node
+ament_target_dependencies(laser_mapping_node
+  rclcpp
+  sensor_msgs
+  nav_msgs
+  pcl_conversions
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  Eigen3
+)
+
+target_include_directories(laser_mapping_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+  ${PCL_INCLUDE_DIRS})
+
+target_link_libraries(laser_mapping_node
+  ${PCL_LIBRARIES}
+)
+
+target_compile_features(laser_mapping_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+
+install(TARGETS laser_processing_node odom_estimation_node laser_mapping_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
