@@ -2,12 +2,6 @@ cmake_minimum_required(VERSION 3.5)
 project(floam)
 
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -pthread")
-
-# Default to C++14
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
-endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -27,19 +21,7 @@ find_package(tf2_ros REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(Ceres REQUIRED)
-
-include_directories(
-  include
-  ${PCL_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
-  ${CERES_INCLUDE_DIRS}
-)
-
-link_directories(
-  ${PCL_LIBRARY_DIRS}
-  ${CERES_LIBRARY_DIRS}
-)
+#find_package(Ceres REQUIRED)
 
 add_executable(laser_processing_node
   src/laser_processing_node.cpp
@@ -54,56 +36,64 @@ ament_target_dependencies(laser_processing_node
   pcl_conversions
 )
 
+target_include_directories(laser_processing_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+  ${PCL_INCLUDE_DIRS})
+
 target_link_libraries(laser_processing_node
   ${PCL_LIBRARIES}
 )
 
-add_executable(odom_estimation_node
-  src/odom_estimation_node.cpp
-  src/odom_estimation.cpp
-  src/odom_estimation_class.cpp
-  src/lidar_optimization.cpp
-  src/lidar.cpp
-)
+target_compile_features(laser_processing_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
-ament_target_dependencies(odom_estimation_node
-  rclcpp
-  sensor_msgs
-  nav_msgs
-  geometry_msgs
-  tf2
-  tf2_ros
-  pcl_conversions
-  Eigen3
-  #CERES
-)
+# add_executable(odom_estimation_node
+#   src/odom_estimation_node.cpp
+#   src/odom_estimation.cpp
+#   src/odom_estimation_class.cpp
+#   src/lidar_optimization.cpp
+#   src/lidar.cpp
+# )
 
-target_link_libraries(odom_estimation_node
-  ${PCL_LIBRARIES}
-  #${EIGEN3_LIBRARIES}
-  ${CERES_LIBRARIES}
-)
+# ament_target_dependencies(odom_estimation_node
+#   rclcpp
+#   sensor_msgs
+#   nav_msgs
+#   geometry_msgs
+#   tf2
+#   tf2_ros
+#   pcl_conversions
+#   Eigen3
+#   #CERES
+# )
 
-add_executable(laser_mapping_node
-  src/laser_mapping_node.cpp
-  src/laser_mapping.cpp
-  src/laser_mapping_class.cpp
-  src/lidar.cpp
-)
+# target_link_libraries(odom_estimation_node
+#   ${PCL_LIBRARIES}
+#   #${EIGEN3_LIBRARIES}
+#   ${CERES_LIBRARIES}
+# )
 
-ament_target_dependencies(laser_mapping_node
-  rclcpp
-  sensor_msgs
-  nav_msgs
-  pcl_conversions
-  Eigen3
-)
+# add_executable(laser_mapping_node
+#   src/laser_mapping_node.cpp
+#   src/laser_mapping.cpp
+#   src/laser_mapping_class.cpp
+#   src/lidar.cpp
+# )
 
-target_link_libraries(laser_mapping_node
-  ${PCL_LIBRARIES}
-)
+# ament_target_dependencies(laser_mapping_node
+#   rclcpp
+#   sensor_msgs
+#   nav_msgs
+#   pcl_conversions
+#   Eigen3
+# )
 
-install(TARGETS laser_processing_node odom_estimation_node laser_mapping_node
+# target_link_libraries(laser_mapping_node
+#   ${PCL_LIBRARIES}
+# )
+
+#install(TARGETS laser_processing_node odom_estimation_node laser_mapping_node
+install(TARGETS laser_processing_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
