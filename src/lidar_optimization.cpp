@@ -5,12 +5,12 @@
 #include "floam/lidar_optimization.hpp"
 
 
-void FLOAMVertex::setToOriginImpl()
+void FloamVertex::setToOriginImpl()
 {
   _estimate = Sophus::SE3d();
 }
 
-void FLOAMVertex::oplusImpl(const double* update)
+void FloamVertex::oplusImpl(const double* update)
 {
   Eigen::Matrix<double, 6, 1> delta_r;
   delta_r << update[0], update[1], update[2], update[3], update[4], update[5];
@@ -19,24 +19,24 @@ void FLOAMVertex::oplusImpl(const double* update)
   // _estimate = _estimate * Sophus::SE3d::exp(delta_r); // right multiplication
 }
 
-bool FLOAMVertex::read(std::istream&)
+bool FloamVertex::read(std::istream&)
 {
   return false;
 }
 
-bool FLOAMVertex::write(std::ostream&) const
+bool FloamVertex::write(std::ostream&) const
 {
   return false;
 }
 
-FLOAMEdge::FLOAMEdge(Eigen::Vector3d pa, Eigen::Vector3d pb, Eigen::Vector3d cp)
+FloamEdge::FloamEdge(Eigen::Vector3d pa, Eigen::Vector3d pb, Eigen::Vector3d cp)
   : BaseUnaryEdge(), lp_a(pa), lp_b(pb), c_p(cp)
 {
 }
 
-void FLOAMEdge::computeError()
+void FloamEdge::computeError()
 {
-  const FLOAMVertex* v = static_cast<const FLOAMVertex*>(_vertices[0]);
+  const FloamVertex* v = static_cast<const FloamVertex*>(_vertices[0]);
   const Sophus::SE3d T = v->estimate();
   Eigen::Vector3d lp = T * c_p;
   Eigen::Vector3d nu = (lp - lp_a).cross(lp - lp_b);
@@ -47,11 +47,11 @@ void FLOAMEdge::computeError()
   _error(0, 0) = nu_norm / de_norm;
 }
 
-void FLOAMEdge::linearizeOplus()
+void FloamEdge::linearizeOplus()
 {
-  const FLOAMVertex* v = static_cast<const FLOAMVertex*>(_vertices[0]);
+  const FloamVertex* v = static_cast<const FloamVertex*>(_vertices[0]);
   const Sophus::SE3d T = v->estimate();
-  Eigen::Matrix3d skew_lp = Sophus::SO3d::hat(T * c_p); //  左乘扰动
+  Eigen::Matrix3d skew_lp = Sophus::SO3d::hat(T * c_p);
   Eigen::Vector3d lp = T * c_p;
   Eigen::Vector3d nu = (lp - lp_a).cross(lp - lp_b);
   Eigen::Vector3d de = lp_a - lp_b;
@@ -63,34 +63,34 @@ void FLOAMEdge::linearizeOplus()
   _jacobianOplusXi.block<1, 6>(0, 0) = -nu.transpose() / nu.norm() * skew_de * dp_by_se3 / de_norm;
 }
 
-bool FLOAMEdge::read(std::istream&)
+bool FloamEdge::read(std::istream&)
 {
   return false;
 }
 
-bool FLOAMEdge::write(std::ostream&) const
+bool FloamEdge::write(std::ostream&) const
 {
   return false;
 }
 
 
-FLOAMSurf::FLOAMSurf(Eigen::Vector3d cur_p, Eigen::Vector3d p_nor)
+FloamSurf::FloamSurf(Eigen::Vector3d cur_p, Eigen::Vector3d p_nor)
   : BaseUnaryEdge(), c_p(cur_p), p_n(p_nor)
 {
 }
 
-void FLOAMSurf::computeError()
+void FloamSurf::computeError()
 {
-  const FLOAMVertex *v = static_cast<const FLOAMVertex *>(_vertices[0]);
+  const FloamVertex *v = static_cast<const FloamVertex *>(_vertices[0]);
   const Sophus::SE3d T = v->estimate();
   Eigen::Vector3d point_w = T * c_p;
 
   _error(0, 0) = p_n.dot(point_w) + _measurement;
 }
 
-void FLOAMSurf::linearizeOplus()
+void FloamSurf::linearizeOplus()
 {
-  const FLOAMVertex* v = static_cast<const FLOAMVertex*>(_vertices[0]);
+  const FloamVertex* v = static_cast<const FloamVertex*>(_vertices[0]);
   const Sophus::SE3d T = v->estimate();
   Eigen::Matrix3d skew_point_w = Sophus::SO3d::hat(T * c_p);
   Eigen::Matrix<double, 3, 6> dp_by_se3;
@@ -99,12 +99,12 @@ void FLOAMSurf::linearizeOplus()
   _jacobianOplusXi.block<1, 6>(0, 0) = p_n.transpose() * dp_by_se3;
 }
 
-bool FLOAMSurf::read(std::istream&)
+bool FloamSurf::read(std::istream&)
 {
   return false;
 }
 
-bool FLOAMSurf::write(std::ostream&) const
+bool FloamSurf::write(std::ostream&) const
 {
   return false;
 }

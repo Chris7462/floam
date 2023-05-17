@@ -60,16 +60,13 @@ void OdomEstimationClass::updatePointsToMap(const pcl::PointCloud<pcl::PointXYZI
     kdtreeSurfMap->setInputCloud(laserCloudSurfMap);
 
     for (int iterCount = 0; iterCount < optimization_count; iterCount++) {
-      //LinearSolverType* linearSolver = new LinearSolverType();
-      //BlockSolverType* blockSolver = new BlockSolverType(linearSolver);
-      //auto solver = new g2o::OptimizationAlgorithmGaussNewton(blockSolver);
       auto solver = new g2o::OptimizationAlgorithmGaussNewton(
         std::make_unique<BlockSolverType>(std::make_unique<LinearSolverType>()));
       g2o::SparseOptimizer opt;
       opt.setAlgorithm(solver);
       opt.setVerbose(false);
 
-      FLOAMVertex* v = new FLOAMVertex();
+      FloamVertex* v = new FloamVertex();
       v->setEstimate(SE3_Rt);
       v->setId(0);
       opt.addVertex(v);
@@ -101,7 +98,7 @@ void OdomEstimationClass::getMap(pcl::PointCloud<pcl::PointXYZI>::Ptr& laserClou
 }
 
 void OdomEstimationClass::addEdgeCostFactor(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pc_in,
-  const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, g2o::SparseOptimizer& opt, FLOAMVertex* v)
+  const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, g2o::SparseOptimizer& opt, FloamVertex* v)
 {
   int corner_num = 0;
   for (int i = 0; i < (int)pc_in->points.size(); i++) {
@@ -111,6 +108,7 @@ void OdomEstimationClass::addEdgeCostFactor(const pcl::PointCloud<pcl::PointXYZI
     std::vector<int> pointSearchInd;
     std::vector<float> pointSearchSqDis;
     kdtreeEdgeMap->nearestKSearch(point_temp, 5, pointSearchInd, pointSearchSqDis);
+
     if (pointSearchSqDis[4] < 1.0) {
       std::vector<Eigen::Vector3d> nearCorners;
       Eigen::Vector3d center(0, 0, 0);
@@ -133,12 +131,13 @@ void OdomEstimationClass::addEdgeCostFactor(const pcl::PointCloud<pcl::PointXYZI
 
       Eigen::Vector3d unit_direction = saes.eigenvectors().col(2);
       Eigen::Vector3d curr_point(pc_in->points[i].x, pc_in->points[i].y, pc_in->points[i].z);
+
       if (saes.eigenvalues()[2] > 3 * saes.eigenvalues()[1]) {
         Eigen::Vector3d point_on_line = center;
         Eigen::Vector3d point_a, point_b;
         point_a = 0.1 * unit_direction + point_on_line;
         point_b = -0.1 * unit_direction + point_on_line;
-        FLOAMEdge* edge = new FLOAMEdge(point_a, point_b, curr_point);
+        FloamEdge* edge = new FloamEdge(point_a, point_b, curr_point);
         edge->setId(i);
         edge->setVertex(0, v);
         // edge->setMeasurement(0);
@@ -149,13 +148,14 @@ void OdomEstimationClass::addEdgeCostFactor(const pcl::PointCloud<pcl::PointXYZI
       }
     }
   }
+
   if (corner_num < 20) {
     printf("not enough correct points");
   }
 }
 
 void OdomEstimationClass::addSurfCostFactor(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pc_in,
-  const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, g2o::SparseOptimizer& opt, FLOAMVertex* v)
+  const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, g2o::SparseOptimizer& opt, FloamVertex* v)
 {
   int surf_num = 0;
   for (int i = 0; i < (int)pc_in->points.size(); i++) {
@@ -167,6 +167,7 @@ void OdomEstimationClass::addSurfCostFactor(const pcl::PointCloud<pcl::PointXYZI
 
     Eigen::Matrix<double, 5, 3> matA0;
     Eigen::Matrix<double, 5, 1> matB0 = -1 * Eigen::Matrix<double, 5, 1>::Ones();
+
     if (pointSearchSqDis[4] < 1.0) {
       for (int j = 0; j < 5; j++) {
         matA0(j, 0) = map_in->points[pointSearchInd[j]].x;
@@ -183,14 +184,17 @@ void OdomEstimationClass::addSurfCostFactor(const pcl::PointCloud<pcl::PointXYZI
         // if OX * n > 0.2, then plane is not fit well
         if (fabs(norm(0) * map_in->points[pointSearchInd[j]].x +
                  norm(1) * map_in->points[pointSearchInd[j]].y +
-                 norm(2) * map_in->points[pointSearchInd[j]].z + negative_OA_dot_norm) > 0.2) {
+                 norm(2) * map_in->points[pointSearchInd[j]].z +
+                 negative_OA_dot_norm) > 0.2) {
           planeValid = false;
           break;
         }
       }
+
       Eigen::Vector3d curr_point(pc_in->points[i].x, pc_in->points[i].y, pc_in->points[i].z);
+
       if (planeValid) {
-        FLOAMSurf* edge = new FLOAMSurf(curr_point, norm);
+        FloamSurf* edge = new FloamSurf(curr_point, norm);
         edge->setId(i);
         edge->setVertex(0, v);
         edge->setMeasurement(negative_OA_dot_norm);
@@ -198,12 +202,14 @@ void OdomEstimationClass::addSurfCostFactor(const pcl::PointCloud<pcl::PointXYZI
         opt.addEdge(edge);
 
         surf_num++;
-        }
       }
+    }
   }
+
   if (surf_num < 20) {
     printf("not enough correct points");
   }
+
 }
 
 void OdomEstimationClass::addPointsToMap(const pcl::PointCloud<pcl::PointXYZI>::Ptr& downsampledEdgeCloud,
