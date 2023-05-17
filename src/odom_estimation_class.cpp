@@ -1,6 +1,9 @@
 // Author of FLOAM: Wang Han
 // ROS2 Migration: Yi-Chen Zhang
 
+// g2o
+#include <g2o/core/optimization_algorithm_gauss_newton.h>
+
 // local header
 #include "floam/odom_estimation_class.hpp"
 
@@ -51,43 +54,12 @@ void OdomEstimationClass::updatePointsToMap(const pcl::PointCloud<pcl::PointXYZI
   downSamplingToMap(edge_in,downsampledEdgeCloud,surf_in,downsampledSurfCloud);
   // printf("point nyum%d,%d",(int)downsampledEdgeCloud->points.size(), (int)downsampledSurfCloud->points.size());
 
-#ifndef USE_G2O
-  if (laserCloudCornerMap->points.size() > 10 && laserCloudSurfMap->points.size() > 50) {
-    kdtreeEdgeMap->setInputCloud(laserCloudCornerMap);
-    kdtreeSurfMap->setInputCloud(laserCloudSurfMap);
-
-    for (int iterCount = 0; iterCount < optimization_count; iterCount++) {
-      ceres::LossFunction *loss_function = new ceres::HuberLoss(0.1);
-      ceres::Problem::Options problem_options;
-      ceres::Problem problem(problem_options);
-
-      problem.AddParameterBlock(parameters, 7, new PoseSE3Parameterization());
-
-      addEdgeCostFactor(downsampledEdgeCloud,laserCloudCornerMap,problem,loss_function);
-      addSurfCostFactor(downsampledSurfCloud,laserCloudSurfMap,problem,loss_function);
-
-      ceres::Solver::Options options;
-      options.linear_solver_type = ceres::DENSE_QR;
-      options.max_num_iterations = 4;
-      options.minimizer_progress_to_stdout = false;
-      options.check_gradients = false;
-      options.gradient_check_relative_precision = 1e-4;
-      ceres::Solver::Summary summary;
-
-      ceres::Solve(options, &problem, &summary);
-    }
-  } else {
-    printf("not enough points in map to associate, map error");
-  }
-#else
   Sophus::SE3d SE3_Rt(q_w_curr, t_w_curr);
   if (laserCloudCornerMap->points.size() > 10 && laserCloudSurfMap->points.size() > 50) {
     kdtreeEdgeMap->setInputCloud(laserCloudCornerMap);
     kdtreeSurfMap->setInputCloud(laserCloudSurfMap);
 
     for (int iterCount = 0; iterCount < optimization_count; iterCount++) {
-      using BlockSolverType = g2o::BlockSolver<g2o::BlockSolverTraits<6, 1>>;
-      using LinearSolverType = g2o::LinearSolverDense<BlockSolverType::PoseMatrixType>;
       //LinearSolverType* linearSolver = new LinearSolverType();
       //BlockSolverType* blockSolver = new BlockSolverType(linearSolver);
       //auto solver = new g2o::OptimizationAlgorithmGaussNewton(blockSolver);
@@ -115,7 +87,7 @@ void OdomEstimationClass::updatePointsToMap(const pcl::PointCloud<pcl::PointXYZI
   } else {
     printf("not enough points in map to associate, map error");
   }
-#endif
+
   odom = Eigen::Isometry3d::Identity();
   odom.linear() = q_w_curr.toRotationMatrix();
   odom.translation() = t_w_curr;
@@ -128,115 +100,8 @@ void OdomEstimationClass::getMap(pcl::PointCloud<pcl::PointXYZI>::Ptr& laserClou
   *laserCloudMap += *laserCloudCornerMap;
 }
 
-#ifndef USE_G2O
 void OdomEstimationClass::addEdgeCostFactor(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pc_in,
-  const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, ceres::Problem& problem, ceres::LossFunction *loss_function)
-{
-  int corner_num = 0;
-  for (int i = 0; i < (int)pc_in->points.size(); i++) {
-    pcl::PointXYZI point_temp;
-    pointAssociateToMap(&(pc_in->points[i]), &point_temp);
-
-    std::vector<int> pointSearchInd;
-    std::vector<float> pointSearchSqDis;
-    kdtreeEdgeMap->nearestKSearch(point_temp, 5, pointSearchInd, pointSearchSqDis);
-
-    if (pointSearchSqDis[4] < 1.0) {
-      std::vector<Eigen::Vector3d> nearCorners;
-      Eigen::Vector3d center(0, 0, 0);
-      for (int j = 0; j < 5; j++) {
-        Eigen::Vector3d tmp(map_in->points[pointSearchInd[j]].x,
-                            map_in->points[pointSearchInd[j]].y,
-                            map_in->points[pointSearchInd[j]].z);
-        center = center + tmp;
-        nearCorners.push_back(tmp);
-      }
-      center = center / 5.0;
-
-      Eigen::Matrix3d covMat = Eigen::Matrix3d::Zero();
-      for (int j = 0; j < 5; j++) {
-        Eigen::Matrix<double, 3, 1> tmpZeroMean = nearCorners[j] - center;
-        covMat = covMat + tmpZeroMean * tmpZeroMean.transpose();
-      }
-
-      Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> saes(covMat);
-
-      Eigen::Vector3d unit_direction = saes.eigenvectors().col(2);
-      Eigen::Vector3d curr_point(pc_in->points[i].x, pc_in->points[i].y, pc_in->points[i].z);
-
-      if (saes.eigenvalues()[2] > 3 * saes.eigenvalues()[1]) {
-        Eigen::Vector3d point_on_line = center;
-        Eigen::Vector3d point_a, point_b;
-        point_a = 0.1 * unit_direction + point_on_line;
-        point_b = -0.1 * unit_direction + point_on_line;
-
-        ceres::CostFunction *cost_function = new EdgeAnalyticCostFunction(curr_point, point_a, point_b);
-        problem.AddResidualBlock(cost_function, loss_function, parameters);
-        corner_num++;
-      }
-    }
-  }
-
-  if (corner_num < 20) {
-    printf("not enough correct points");
-  }
-}
-
-void OdomEstimationClass::addSurfCostFactor(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pc_in,
-  const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, ceres::Problem& problem, ceres::LossFunction *loss_function)
-{
-  int surf_num=0;
-  for (int i = 0; i < (int)pc_in->points.size(); i++) {
-    pcl::PointXYZI point_temp;
-    pointAssociateToMap(&(pc_in->points[i]), &point_temp);
-    std::vector<int> pointSearchInd;
-    std::vector<float> pointSearchSqDis;
-    kdtreeSurfMap->nearestKSearch(point_temp, 5, pointSearchInd, pointSearchSqDis);
-
-    Eigen::Matrix<double, 5, 3> matA0;
-    Eigen::Matrix<double, 5, 1> matB0 = -1 * Eigen::Matrix<double, 5, 1>::Ones();
-
-    if (pointSearchSqDis[4] < 1.0) {
-      for (int j = 0; j < 5; j++) {
-        matA0(j, 0) = map_in->points[pointSearchInd[j]].x;
-        matA0(j, 1) = map_in->points[pointSearchInd[j]].y;
-        matA0(j, 2) = map_in->points[pointSearchInd[j]].z;
-      }
-      // find the norm of plane
-      Eigen::Vector3d norm = matA0.colPivHouseholderQr().solve(matB0);
-      double negative_OA_dot_norm = 1 / norm.norm();
-      norm.normalize();
-
-      bool planeValid = true;
-      for (int j = 0; j < 5; j++) {
-        // if OX * n > 0.2, then plane is not fit well
-        if (fabs(norm(0) * map_in->points[pointSearchInd[j]].x +
-                 norm(1) * map_in->points[pointSearchInd[j]].y +
-                 norm(2) * map_in->points[pointSearchInd[j]].z +
-                 negative_OA_dot_norm) > 0.2) {
-          planeValid = false;
-          break;
-        }
-      }
-
-      Eigen::Vector3d curr_point(pc_in->points[i].x, pc_in->points[i].y, pc_in->points[i].z);
-
-      if (planeValid) {
-        ceres::CostFunction *cost_function = new SurfNormAnalyticCostFunction(curr_point, norm, negative_OA_dot_norm);
-        problem.AddResidualBlock(cost_function, loss_function, parameters);
-        surf_num++;
-      }
-    }
-  }
-
-  if (surf_num < 20) {
-    printf("not enough correct points");
-  }
-
-}
-#else
-void OdomEstimationClass::addEdgeCostFactor(const pcl::PointCloud<pcl::PointXYZI>::Ptr&pc_in,
-  const pcl::PointCloud<pcl::PointXYZI>::Ptr&map_in, g2o::SparseOptimizer& opt, FLOAMVertex* v)
+  const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, g2o::SparseOptimizer& opt, FLOAMVertex* v)
 {
   int corner_num = 0;
   for (int i = 0; i < (int)pc_in->points.size(); i++) {
@@ -340,7 +205,6 @@ void OdomEstimationClass::addSurfCostFactor(const pcl::PointCloud<pcl::PointXYZI
     printf("not enough correct points");
   }
 }
-#endif
 
 void OdomEstimationClass::addPointsToMap(const pcl::PointCloud<pcl::PointXYZI>::Ptr& downsampledEdgeCloud,
   const pcl::PointCloud<pcl::PointXYZI>::Ptr& downsampledSurfCloud)

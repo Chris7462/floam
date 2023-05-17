@@ -1,50 +1,45 @@
-// Author of FLOAM: Wang Han
-// ROS2 Migration: Yi-Chen Zhang
-
 #pragma once
 
-// system header
-#include <ceres/ceres.h>
-#include <ceres/rotation.h>
+#include <iostream>
+
+#include <g2o/core/g2o_core_api.h>
+#include <g2o/core/base_vertex.h>
+#include <g2o/core/base_unary_edge.h>
 #include <Eigen/Dense>
-#include <Eigen/Geometry>
+#include <sophus/se3.hpp>
 
 
-void getTransformFromSe3(const Eigen::Matrix<double,6,1>& se3, Eigen::Quaterniond& q, Eigen::Vector3d& t);
-
-Eigen::Matrix3d skew(Eigen::Vector3d& mat_in);
-
-class EdgeAnalyticCostFunction : public ceres::SizedCostFunction<1, 7>
-{
-	public:
-		EdgeAnalyticCostFunction(Eigen::Vector3d curr_point, Eigen::Vector3d last_point_a, Eigen::Vector3d last_point_b);
-		virtual ~EdgeAnalyticCostFunction() {}
-		virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
-
-		Eigen::Vector3d curr_point_;
-		Eigen::Vector3d last_point_a_;
-		Eigen::Vector3d last_point_b_;
-};
-
-class SurfNormAnalyticCostFunction : public ceres::SizedCostFunction<1, 7>
-{
-	public:
-		SurfNormAnalyticCostFunction(Eigen::Vector3d curr_point, Eigen::Vector3d plane_unit_norm, double negative_OA_dot_norm);
-		virtual ~SurfNormAnalyticCostFunction() {}
-		virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
-
-		Eigen::Vector3d curr_point_;
-		Eigen::Vector3d plane_unit_norm_;
-		double negative_OA_dot_norm_;
-};
-
-class PoseSE3Parameterization : public ceres::LocalParameterization
+class FLOAMVertex: public g2o::BaseVertex<6, Sophus::SE3d>
 {
   public:
-    PoseSE3Parameterization() {}
-    virtual ~PoseSE3Parameterization() {}
-    virtual bool Plus(const double* x, const double* delta, double* x_plus_delta) const;
-    virtual bool ComputeJacobian(const double* x, double* jacobian) const;
-    virtual int GlobalSize() const { return 7; }
-    virtual int LocalSize() const { return 6; }
+    virtual void setToOriginImpl() override;
+    virtual void oplusImpl(const double* update) override;
+    virtual bool read(std::istream& in);
+    virtual bool write(std::ostream& out) const;
+};
+
+class FLOAMEdge: public g2o::BaseUnaryEdge<1, double, FLOAMVertex>
+{
+  public:
+    FLOAMEdge(Eigen::Vector3d pa, Eigen::Vector3d pb, Eigen::Vector3d cp);
+    virtual void computeError() override;
+    virtual void linearizeOplus() override;
+    virtual bool read(std::istream& in);
+    virtual bool write(std::ostream& out) const;
+
+  private:
+    Eigen::Vector3d lp_a, lp_b, c_p;
+};
+
+class FLOAMSurf: public g2o::BaseUnaryEdge<1, double, FLOAMVertex>
+{
+  public:
+    FLOAMSurf(Eigen::Vector3d cur_p, Eigen::Vector3d p_nor);
+    virtual void computeError() override;
+    virtual void linearizeOplus() override;
+    virtual bool read(std::istream& in);
+    virtual bool write(std::ostream& out) const;
+
+  private:
+    Eigen::Vector3d c_p, p_n;
 };

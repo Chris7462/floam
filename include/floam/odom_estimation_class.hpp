@@ -8,9 +8,10 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/crop_box.h>
 
-// ceres
-#include <ceres/ceres.h>
-#include <ceres/rotation.h>
+// g2o
+#include <g2o/core/sparse_optimizer.h>
+#include <g2o/core/block_solver.h>
+#include <g2o/solvers/dense/linear_solver_dense.h>
 
 // eigen
 #include <Eigen/Dense>
@@ -18,12 +19,13 @@
 
 // local header
 #include "floam/lidar_optimization.hpp"
-#include "floam/lidar_optimization_g2o.hpp"
 
 
-#define USE_G2O
 class OdomEstimationClass
 {
+  using BlockSolverType = g2o::BlockSolver<g2o::BlockSolverTraits<6, 1>>;
+  using LinearSolverType = g2o::LinearSolverDense<BlockSolverType::PoseMatrixType>;
+
   public:
   	OdomEstimationClass() = default;
 		void init(double map_resolution);
@@ -58,14 +60,8 @@ class OdomEstimationClass
 		int optimization_count;
 
 		// function
-#ifndef USE_G2O
-		void addEdgeCostFactor(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pc_in, const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, ceres::Problem& problem, ceres::LossFunction *loss_function);
-		void addSurfCostFactor(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pc_in, const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, ceres::Problem& problem, ceres::LossFunction *loss_function);
-#else
 	  void addEdgeCostFactor(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pc_in, const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, g2o::SparseOptimizer&, FLOAMVertex*);
 	  void addSurfCostFactor(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pc_in, const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, g2o::SparseOptimizer&, FLOAMVertex*);
-#endif
-
 		void addPointsToMap(const pcl::PointCloud<pcl::PointXYZI>::Ptr& downsampledEdgeCloud, const pcl::PointCloud<pcl::PointXYZI>::Ptr& downsampledSurfCloud);
 		void pointAssociateToMap(pcl::PointXYZI const *const pi, pcl::PointXYZI *const po);
 		void downSamplingToMap(const pcl::PointCloud<pcl::PointXYZI>::Ptr& edge_pc_in, pcl::PointCloud<pcl::PointXYZI>::Ptr& edge_pc_out, const pcl::PointCloud<pcl::PointXYZI>::Ptr& surf_pc_in, pcl::PointCloud<pcl::PointXYZI>::Ptr& surf_pc_out);
