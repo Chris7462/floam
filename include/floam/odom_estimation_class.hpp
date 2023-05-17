@@ -18,8 +18,10 @@
 
 // local header
 #include "floam/lidar_optimization.hpp"
+#include "floam/lidar_optimization_g2o.hpp"
 
 
+#define USE_G2O
 class OdomEstimationClass
 {
   public:
@@ -56,8 +58,14 @@ class OdomEstimationClass
 		int optimization_count;
 
 		// function
+#ifndef USE_G2O
 		void addEdgeCostFactor(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pc_in, const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, ceres::Problem& problem, ceres::LossFunction *loss_function);
 		void addSurfCostFactor(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pc_in, const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, ceres::Problem& problem, ceres::LossFunction *loss_function);
+#else
+	  void addEdgeCostFactor(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pc_in, const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, g2o::SparseOptimizer&, FLOAMVertex*);
+	  void addSurfCostFactor(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pc_in, const pcl::PointCloud<pcl::PointXYZI>::Ptr& map_in, g2o::SparseOptimizer&, FLOAMVertex*);
+#endif
+
 		void addPointsToMap(const pcl::PointCloud<pcl::PointXYZI>::Ptr& downsampledEdgeCloud, const pcl::PointCloud<pcl::PointXYZI>::Ptr& downsampledSurfCloud);
 		void pointAssociateToMap(pcl::PointXYZI const *const pi, pcl::PointXYZI *const po);
 		void downSamplingToMap(const pcl::PointCloud<pcl::PointXYZI>::Ptr& edge_pc_in, pcl::PointCloud<pcl::PointXYZI>::Ptr& edge_pc_out, const pcl::PointCloud<pcl::PointXYZI>::Ptr& surf_pc_in, pcl::PointCloud<pcl::PointXYZI>::Ptr& surf_pc_out);
