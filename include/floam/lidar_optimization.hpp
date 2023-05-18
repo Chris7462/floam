@@ -27,25 +27,25 @@ class FloamVertex: public g2o::BaseVertex<6, Sophus::SE3d>
 class FloamEdge: public g2o::BaseUnaryEdge<1, double, FloamVertex>
 {
   public:
-    FloamEdge(Eigen::Vector3d pa, Eigen::Vector3d pb, Eigen::Vector3d cp);
+    FloamEdge( Eigen::Vector3d curr_point, Eigen::Vector3d last_point_a, Eigen::Vector3d last_point_b);
     virtual void computeError() override;
     virtual void linearizeOplus() override;
     virtual bool read(std::istream&);
     virtual bool write(std::ostream&) const;
 
   private:
-    Eigen::Vector3d lp_a, lp_b, c_p;
+    Eigen::Vector3d curr_point_, last_point_a_, last_point_b_;
 };
 
 class FloamSurf: public g2o::BaseUnaryEdge<1, double, FloamVertex>
 {
   public:
-    FloamSurf(Eigen::Vector3d cur_p, Eigen::Vector3d p_nor);
+    FloamSurf(Eigen::Vector3d curr_point, Eigen::Vector3d plane_unit_norm);
     virtual void computeError() override;
     virtual void linearizeOplus() override;
     virtual bool read(std::istream&);
     virtual bool write(std::ostream&) const;
 
   private:
-    Eigen::Vector3d c_p, p_n;
+    Eigen::Vector3d curr_point_, plane_unit_norm_;
 };

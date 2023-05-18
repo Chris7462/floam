@@ -137,7 +137,7 @@ void OdomEstimationClass::addEdgeCostFactor(const pcl::PointCloud<pcl::PointXYZI
         Eigen::Vector3d point_a, point_b;
         point_a = 0.1 * unit_direction + point_on_line;
         point_b = -0.1 * unit_direction + point_on_line;
-        FloamEdge* edge = new FloamEdge(point_a, point_b, curr_point);
+        FloamEdge* edge = new FloamEdge(curr_point, point_a, point_b);
         edge->setId(i);
         edge->setVertex(0, v);
         // edge->setMeasurement(0);
