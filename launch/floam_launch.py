@@ -25,7 +25,8 @@ def generate_launch_description():
   )
 
   bag_exec = ExecuteProcess(
-    cmd=["ros2", "bag", "play", "-r", "0.85", "/data/Kitti/raw/2011_09_30_0018" , "--topics", "velodyne_points", "cam03/image_raw", "--clock"]
+    cmd=["ros2", "bag", "play", "-r", "1.0",
+         '/data/kitti/raw/2011_09_30_drive_0028_sync_bag', '--clock']
   )
 
   rviz_node = Node(

@@ -43,7 +43,7 @@ LaserProcessingNode::LaserProcessingNode()
   laserProcessing_.init(lidar_param_);
 
   subLaserCloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-    "velodyne_points", 100, std::bind(&LaserProcessingNode::velodyneHandler, this, std::placeholders::_1));
+    "kitti/velo", 100, std::bind(&LaserProcessingNode::velodyneHandler, this, std::placeholders::_1));
 
   pubLaserCloudFiltered_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("velodyne_points_filtered", 100);
   pubEdgePoints_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("laser_cloud_edge", 100);

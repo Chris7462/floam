@@ -6,6 +6,7 @@
 // system header
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
+#include <ceres/manifold.h>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
@@ -45,9 +46,7 @@ class PoseSE3Parameterization : public ceres::Manifold
     virtual ~PoseSE3Parameterization() {}
     virtual bool Plus(const double* x, const double* delta, double* x_plus_delta) const;
     virtual bool PlusJacobian(const double*, double* jacobian) const;
-    virtual bool RightMultiplyByPlusJacobian(const double*, const int,
-                                             const double*, double*) const;
-    virtual bool Minus(const double* y, const double* x, double* y_minus_x) const;
+    virtual bool Minus(const double* x, const double* delta, double* x_plus_delta) const;
     virtual bool MinusJacobian(const double*, double* jacobian) const;
     virtual int AmbientSize() const { return 7; }
     virtual int TangentSize() const { return 6; }
