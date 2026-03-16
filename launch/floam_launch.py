@@ -10,10 +10,10 @@ def generate_launch_description():
     get_package_share_directory("floam"), "params", "floam_params.yaml"
   )
 
-  laser_processing_node = Node(
+  lidar_processing_node = Node(
     package="floam",
-    executable="laser_processing_node",
-    name="laser_processing_node",
+    executable="lidar_processing_node",
+    name="lidar_processing_node",
     parameters=[params]
   )
 
@@ -36,7 +36,7 @@ def generate_launch_description():
   )
 
   return LaunchDescription([
-    laser_processing_node,
+    lidar_processing_node,
     odom_estimation_node,
     bag_exec,
     rviz_node

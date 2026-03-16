@@ -11,32 +11,32 @@
 
 // local header
 #include "floam_core/lidar.hpp"
-#include "floam_core/laser_mapping.hpp"
+#include "floam_core/lidar_mapping.hpp"
 
 
 namespace floam
 {
 
-class LaserMapping : public rclcpp::Node
+class LidarMapping : public rclcpp::Node
 {
 public:
-  LaserMapping();
-  void laser_mapping();
+  LidarMapping();
+  void lidar_mapping();
 
 private:
-  floam_core::LaserMapping laserMapping_;
+  floam_core::LidarMapping lidarMapping_;
   std::queue<nav_msgs::msg::Odometry::ConstSharedPtr> odometryBuf_;
   std::queue<sensor_msgs::msg::PointCloud2::ConstSharedPtr> pointCloudBuf_;
   std::mutex mutex_lock_;
   floam_core::Lidar lidar_param_;
 
-  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subLaserCloud_;
+  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subLidarCloud_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subOdometry_;
 
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubMap_;
 
   void odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr odomMsg);
-  void velodyneHandler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr laserCloudMsg);
+  void lidarHandler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidarCloudMsg);
 };
 
 } // namespace floam

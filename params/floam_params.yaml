@@ -1,4 +1,4 @@
-/laser_processing_node:
+/lidar_processing_node:
   ros__parameters:
     max_dist: 90.0
     min_dist: 3.0
@@ -15,7 +15,7 @@
     scan_period: 0.1
     vertical_angle: 2.0
 
-/laser_mapping_node:
+/lidar_mapping_node:
   ros__parameters:
     map_resolution: 0.4
     max_dist: 90.0

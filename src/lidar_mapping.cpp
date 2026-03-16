@@ -10,14 +10,14 @@
 #include <pcl/point_types.h>
 
 // local header
-#include "floam/laser_mapping.hpp"
+#include "floam/lidar_mapping.hpp"
 
 
 namespace floam
 {
 
-LaserMapping::LaserMapping()
-  : Node("laser_mapping_node")
+LidarMapping::LidarMapping()
+  : Node("lidar_mapping_node")
 {
   int scan_line = 64;
   double scan_period = 0.1;
@@ -47,17 +47,17 @@ LaserMapping::LaserMapping()
   lidar_param_.setMaxDistance(max_dist);
   lidar_param_.setMinDistance(min_dist);
 
-  laserMapping_.init(map_resolution);
+  lidarMapping_.init(map_resolution);
 
-  subLaserCloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-    "velodyne_points_filtered", 100, std::bind(&LaserMapping::velodyneHandler, this, std::placeholders::_1));
+  subLidarCloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+    "velodyne_points_filtered", 100, std::bind(&LidarMapping::lidarHandler, this, std::placeholders::_1));
   subOdometry_ = this->create_subscription<nav_msgs::msg::Odometry>(
-    "odom", 100, std::bind(&LaserMapping::odomCallback, this, std::placeholders::_1));
+    "odom", 100, std::bind(&LidarMapping::odomCallback, this, std::placeholders::_1));
 
   pubMap_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("map", 100);
 }
 
-void LaserMapping::laser_mapping()
+void LidarMapping::lidar_mapping()
 {
   while (1) {
     if (!odometryBuf_.empty() && !pointCloudBuf_.empty()) {
@@ -65,14 +65,14 @@ void LaserMapping::laser_mapping()
       mutex_lock_.lock();
       if (!pointCloudBuf_.empty() && pointCloudBuf_.front()->header.stamp.sec < odometryBuf_.front()->header.stamp.sec - 0.5*lidar_param_.scan_period) {
         pointCloudBuf_.pop();
-        RCLCPP_WARN(this->get_logger(), "time stamp unaligned error and pointcloud discarded, pls check your data --> laser mapping node");
+        RCLCPP_WARN(this->get_logger(), "time stamp unaligned error and pointcloud discarded, pls check your data --> lidar mapping node");
         mutex_lock_.unlock();
         continue;
       }
 
       if (!odometryBuf_.empty() && odometryBuf_.front()->header.stamp.sec < pointCloudBuf_.front()->header.stamp.sec - 0.5*lidar_param_.scan_period) {
         odometryBuf_.pop();
-        RCLCPP_WARN(this->get_logger(), "time stamp unaligned with path final, pls check your data --> laser mapping node");
+        RCLCPP_WARN(this->get_logger(), "time stamp unaligned with path final, pls check your data --> lidar mapping node");
         mutex_lock_.unlock();
         continue;
       }
@@ -89,9 +89,9 @@ void LaserMapping::laser_mapping()
       odometryBuf_.pop();
       mutex_lock_.unlock();
 
-      laserMapping_.updateCurrentPointsToMap(pointcloud_in, current_pose);
+      lidarMapping_.updateCurrentPointsToMap(pointcloud_in, current_pose);
 
-      pcl::PointCloud<pcl::PointXYZI>::Ptr pc_map = laserMapping_.getMap();
+      pcl::PointCloud<pcl::PointXYZI>::Ptr pc_map = lidarMapping_.getMap();
       sensor_msgs::msg::PointCloud2 PointsMsg;
       pcl::toROSMsg(*pc_map, PointsMsg);
       PointsMsg.header.stamp = pointcloud_time;
@@ -105,17 +105,17 @@ void LaserMapping::laser_mapping()
   }
 }
 
-void LaserMapping::odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr odomMsg)
+void LidarMapping::odomCallback(const nav_msgs::msg::Odometry::ConstSharedPtr odomMsg)
 {
   mutex_lock_.lock();
   odometryBuf_.push(odomMsg);
   mutex_lock_.unlock();
 }
 
-void LaserMapping::velodyneHandler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr laserCloudMsg)
+void LidarMapping::lidarHandler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidarCloudMsg)
 {
   mutex_lock_.lock();
-  pointCloudBuf_.push(laserCloudMsg);
+  pointCloudBuf_.push(lidarCloudMsg);
   mutex_lock_.unlock();
 }
 

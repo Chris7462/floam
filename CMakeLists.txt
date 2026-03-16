@@ -22,32 +22,32 @@ find_package(Sophus REQUIRED)
 find_package(g2o REQUIRED)
 find_package(floam_core REQUIRED)
 
-# laser_processing_node
-add_executable(laser_processing_node
-  src/laser_processing_node.cpp
-  src/laser_processing.cpp
+# lidar_processing_node
+add_executable(lidar_processing_node
+  src/lidar_processing_node.cpp
+  src/lidar_processing.cpp
 )
 
-ament_target_dependencies(laser_processing_node
+ament_target_dependencies(lidar_processing_node
   rclcpp
   sensor_msgs
   pcl_conversions
 )
 
-target_include_directories(laser_processing_node PUBLIC
+target_include_directories(lidar_processing_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
   ${PCL_INCLUDE_DIRS}
 )
 
-target_link_libraries(laser_processing_node
+target_link_libraries(lidar_processing_node
   floam_core::floam_core
   ${PCL_LIBRARIES}
 )
 
-target_compile_features(laser_processing_node PUBLIC cxx_std_17)
+target_compile_features(lidar_processing_node PUBLIC cxx_std_17)
 
-target_compile_options(laser_processing_node PRIVATE
+target_compile_options(lidar_processing_node PRIVATE
   $<$<COMPILE_LANGUAGE:CXX>:
     -Wall
     -Wextra
@@ -94,13 +94,13 @@ target_compile_options(odom_estimation_node PRIVATE
   >
 )
 
-# laser_mapping_node
-add_executable(laser_mapping_node
-  src/laser_mapping_node.cpp
-  src/laser_mapping.cpp
+# lidar_mapping_node
+add_executable(lidar_mapping_node
+  src/lidar_mapping_node.cpp
+  src/lidar_mapping.cpp
 )
 
-ament_target_dependencies(laser_mapping_node
+ament_target_dependencies(lidar_mapping_node
   rclcpp
   sensor_msgs
   nav_msgs
@@ -110,20 +110,20 @@ ament_target_dependencies(laser_mapping_node
   tf2_geometry_msgs
 )
 
-target_include_directories(laser_mapping_node PUBLIC
+target_include_directories(lidar_mapping_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
   ${PCL_INCLUDE_DIRS}
 )
 
-target_link_libraries(laser_mapping_node
+target_link_libraries(lidar_mapping_node
   floam_core::floam_core
   ${PCL_LIBRARIES}
 )
 
-target_compile_features(laser_mapping_node PUBLIC cxx_std_17)
+target_compile_features(lidar_mapping_node PUBLIC cxx_std_17)
 
-target_compile_options(laser_mapping_node PRIVATE
+target_compile_options(lidar_mapping_node PRIVATE
   $<$<COMPILE_LANGUAGE:CXX>:
     -Wall
     -Wextra
@@ -132,7 +132,7 @@ target_compile_options(laser_mapping_node PRIVATE
   >
 )
 
-install(TARGETS laser_processing_node odom_estimation_node laser_mapping_node
+install(TARGETS lidar_processing_node odom_estimation_node lidar_mapping_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
