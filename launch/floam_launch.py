@@ -1,43 +1,49 @@
-from launch import LaunchDescription
-from launch_ros.actions import Node
-from launch.actions import ExecuteProcess
-from ament_index_python.packages import get_package_share_directory
 from os.path import join
+
+from ament_index_python.packages import get_package_share_directory
+
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
-  params = join(
-    get_package_share_directory("floam"), "params", "floam_params.yaml"
-  )
+    declare_use_sim_time = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='false',
+        description='Use simulation time'
+    )
 
-  lidar_processing_node = Node(
-    package="floam",
-    executable="lidar_processing_node",
-    name="lidar_processing_node",
-    parameters=[params]
-  )
+    params = join(
+        get_package_share_directory('floam'), 'params',
+        'floam_params.yaml'
+    )
 
-  odom_estimation_node = Node(
-    package="floam",
-    executable="odom_estimation_node",
-    name="odom_estimation_node",
-    parameters=[params]
-  )
+    lidar_processing_node = Node(
+        package='floam',
+        executable='lidar_processing_node',
+        name='lidar_processing_node',
+        output='screen',
+        parameters=[
+            params,
+            {'use_sim_time': LaunchConfiguration('use_sim_time')}
+        ]
+    )
 
-  bag_exec = ExecuteProcess(
-    cmd=["ros2", "bag", "play", "-r", "0.85", "/data/kitti/raw/2011_09_30_drive_0018_sync_bag" , "--topics", "/kitti/velo", "/kitti/camera/color/left/image_raw", "--clock"]
-  )
+    odom_estimation_node = Node(
+        package='floam',
+        executable='odom_estimation_node',
+        name='odom_estimation_node',
+        output='screen',
+        parameters=[
+            params,
+            {'use_sim_time': LaunchConfiguration('use_sim_time')}
+        ]
+    )
 
-  rviz_node = Node(
-    package="rviz2",
-    executable="rviz2",
-    name="rviz2",
-    arguments=["-d", join(get_package_share_directory("floam"), "rviz/", "floam.rviz")]
-  )
-
-  return LaunchDescription([
-    lidar_processing_node,
-    odom_estimation_node,
-    bag_exec,
-    rviz_node
-  ])
+    return LaunchDescription([
+        declare_use_sim_time,
+        lidar_processing_node,
+        odom_estimation_node
+    ])

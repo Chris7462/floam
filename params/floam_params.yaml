@@ -1,25 +1,33 @@
-/lidar_processing_node:
+lidar_processing_node:
   ros__parameters:
-    max_dist: 90.0
-    min_dist: 3.0
+    # Lidar parameters
     scan_line: 64
-    scan_period: 0.1
-    vertical_angle: 2.0
+    scan_period: 0.1  # seconds
+    vertical_angle: 2.0  # degrees
+    max_dist: 90.0  # meters
+    min_dist: 3.0  # meters
+    # Processing parameters
+    processing_frequency: 50.0  # Hz
+    max_processing_queue_size: 3  # Maximum number of queued point clouds
 
-/odom_estimation_node:
+odom_estimation_node:
   ros__parameters:
-    map_resolution: 0.4
-    max_dist: 90.0
-    min_dist: 3.0
+    # Lidar parameters
     scan_line: 64
-    scan_period: 0.1
-    vertical_angle: 2.0
+    scan_period: 0.1  # seconds
+    vertical_angle: 2.0  # degrees
+    max_dist: 90.0  # meters
+    min_dist: 3.0  # meters
+    # Map parameters
+    map_resolution: 0.4  # meters
 
-/lidar_mapping_node:
+lidar_mapping_node:
   ros__parameters:
-    map_resolution: 0.4
-    max_dist: 90.0
-    min_dist: 3.0
+    # Lidar parameters
     scan_line: 64
-    scan_period: 0.1
-    vertical_angle: 2.0
+    scan_period: 0.1  # seconds
+    vertical_angle: 2.0  # degrees
+    max_dist: 90.0  # meters
+    min_dist: 3.0  # meters
+    # Map parameters
+    map_resolution: 0.4  # meters

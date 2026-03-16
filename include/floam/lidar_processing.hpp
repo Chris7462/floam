@@ -20,21 +20,45 @@ class LidarProcessing : public rclcpp::Node
 {
   public:
     LidarProcessing();
-    void lidar_processing();
 
   private:
+    // ROS2 components
+    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr lidar_sub_;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr edge_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr surf_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr filtered_pub_;
+    rclcpp::TimerBase::SharedPtr timer_;
+
+    // Callback group for parallel execution
+    rclcpp::CallbackGroup::SharedPtr callback_group_;
+
+    // Core processing
     floam_core::LidarProcessing lidarProcessing_;
-    std::queue<sensor_msgs::msg::PointCloud2::ConstSharedPtr> pointCloudBuf_;
-    std::mutex mutex_lock_;
     floam_core::Lidar lidar_param_;
 
-    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subLidarCloud_;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubEdgePoints_;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubSurfPoints_;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLidarCloudFiltered_;
+    // Buffer
+    std::queue<sensor_msgs::msg::PointCloud2::ConstSharedPtr> pointCloudBuf_;
+    std::mutex mutex_lock_;
 
-    void lidarHandler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidarCloudMsg);
+    // Parameters
+    double processing_frequency_;
+    size_t max_processing_queue_size_;
 
+    // Callbacks
+    void lidar_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidarCloudMsg);
+    void timer_callback();
+
+    // Processing
+    void process_lidar(const pcl::PointCloud<pcl::PointXYZI>::Ptr& pointcloud_in,
+      pcl::PointCloud<pcl::PointXYZI>::Ptr& pointcloud_edge,
+      pcl::PointCloud<pcl::PointXYZI>::Ptr& pointcloud_surf);
+
+    void publish_lidar_result(
+      const pcl::PointCloud<pcl::PointXYZI>::Ptr& pointcloud_edge,
+      const pcl::PointCloud<pcl::PointXYZI>::Ptr& pointcloud_surf,
+      const rclcpp::Time& pointcloud_time);
+
+    // Timing
     double total_time_;
     int total_frame_;
 };
