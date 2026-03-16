@@ -17,12 +17,12 @@ def generate_launch_description():
     parameters=[params]
   )
 
-# odom_estimation_node = Node(
-#   package="floam",
-#   executable="odom_estimation_node",
-#   name="odom_estimation_node",
-#   parameters=[params]
-# )
+  odom_estimation_node = Node(
+    package="floam",
+    executable="odom_estimation_node",
+    name="odom_estimation_node",
+    parameters=[params]
+  )
 
   bag_exec = ExecuteProcess(
     cmd=["ros2", "bag", "play", "-r", "0.85", "/data/kitti/raw/2011_09_30_drive_0018_sync_bag" , "--topics", "/kitti/velo", "/kitti/camera/color/left/image_raw", "--clock"]
@@ -37,7 +37,7 @@ def generate_launch_description():
 
   return LaunchDescription([
     laser_processing_node,
-#   odom_estimation_node,
+    odom_estimation_node,
     bag_exec,
     rviz_node
   ])
