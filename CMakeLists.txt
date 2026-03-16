@@ -58,39 +58,42 @@ target_compile_options(laser_processing_node PRIVATE
 )
 
 # odom_estimation_node
-# add_executable(odom_estimation_node
-#   src/odom_estimation_node.cpp
-#   src/odom_estimation.cpp
-#   src/odom_estimation_class.cpp
-#   src/lidar_optimization.cpp
-#   src/lidar.cpp
-# )
-#
-# ament_target_dependencies(odom_estimation_node
-#   rclcpp
-#   sensor_msgs
-#   nav_msgs
-#   geometry_msgs
-#   tf2
-#   tf2_ros
-#   pcl_conversions
-#   Eigen3
-# )
-#
-# target_include_directories(odom_estimation_node PUBLIC
-#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-#   $<INSTALL_INTERFACE:include>
-#   ${PCL_INCLUDE_DIRS}
-# )
-#
-# target_link_libraries(odom_estimation_node
-#   ${PCL_LIBRARIES}
-#   Sophus::Sophus
-#   g2o::core
-#   g2o::solver_dense
-# )
-#
-# target_compile_features(odom_estimation_node PUBLIC cxx_std_17)
+add_executable(odom_estimation_node
+  src/odom_estimation_node.cpp
+  src/odom_estimation.cpp
+)
+
+ament_target_dependencies(odom_estimation_node
+  rclcpp
+  sensor_msgs
+  nav_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  pcl_conversions
+)
+
+target_include_directories(odom_estimation_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+  ${PCL_INCLUDE_DIRS}
+)
+
+target_link_libraries(odom_estimation_node
+  floam_core::floam_core
+  ${PCL_LIBRARIES}
+)
+
+target_compile_features(odom_estimation_node PUBLIC cxx_std_17)
+
+target_compile_options(odom_estimation_node PRIVATE
+  $<$<COMPILE_LANGUAGE:CXX>:
+    -Wall
+    -Wextra
+    -Wpedantic
+    -O3
+  >
+)
 
 # laser_mapping_node
 # add_executable(laser_mapping_node
@@ -124,7 +127,7 @@ target_compile_options(laser_processing_node PRIVATE
 #
 # target_compile_features(laser_mapping_node PUBLIC cxx_std_17)
 
-install(TARGETS laser_processing_node
+install(TARGETS laser_processing_node odom_estimation_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
