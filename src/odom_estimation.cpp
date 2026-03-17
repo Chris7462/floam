@@ -44,11 +44,11 @@ OdomEstimation::OdomEstimation()
   min_dist = this->get_parameter("min_dist").get_parameter_value().get<double>();
   map_resolution = this->get_parameter("map_resolution").get_parameter_value().get<double>();
 
-  lidar_param_.setScanPeriod(scan_period);
-  lidar_param_.setVerticalAngle(vertical_angle);
-  lidar_param_.setLines(scan_line);
-  lidar_param_.setMaxDistance(max_dist);
-  lidar_param_.setMinDistance(min_dist);
+  lidar_param_.set_scan_period(scan_period);
+  lidar_param_.set_vertical_angle(vertical_angle);
+  lidar_param_.set_lines(scan_line);
+  lidar_param_.set_max_distance(max_dist);
+  lidar_param_.set_min_distance(min_dist);
 
   odom_estimation_.init(map_resolution);
 
