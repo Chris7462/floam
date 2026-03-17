@@ -9,6 +9,13 @@ lidar_processing_node:
     # Processing parameters
     processing_frequency: 50.0  # Hz
     max_processing_queue_size: 3  # Maximum number of queued point clouds
+    # QoS parameters
+    queue_size: 10
+    # Topic parameters
+    input_topic: "kitti/velo"
+    output_filtered_topic: "velodyne_points_filtered"
+    output_edge_topic: "laser_cloud_edge"
+    output_surf_topic: "laser_cloud_surf"
 
 odom_estimation_node:
   ros__parameters:

@@ -93,6 +93,11 @@ private:
   std::mutex mutex_lock_;
 
   // Parameters
+  std::string input_topic_;
+  std::string output_filtered_topic_;
+  std::string output_edge_topic_;
+  std::string output_surf_topic_;
+  int queue_size_;
   double processing_frequency_;
   size_t max_processing_queue_size_;
 

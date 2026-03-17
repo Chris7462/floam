@@ -37,6 +37,11 @@ void LidarProcessing::initialize_parameters()
   const double min_dist = declare_parameter<double>("min_dist", 2.0);
   processing_frequency_ = declare_parameter<double>("processing_frequency", 50.0);
   max_processing_queue_size_ = static_cast<size_t>(declare_parameter<int>("max_processing_queue_size", 3));
+  queue_size_ = declare_parameter<int>("queue_size", 10);
+  input_topic_ = declare_parameter<std::string>("input_topic", "kitti/velo");
+  output_filtered_topic_ = declare_parameter<std::string>("output_filtered_topic", "velodyne_points_filtered");
+  output_edge_topic_ = declare_parameter<std::string>("output_edge_topic", "laser_cloud_edge");
+  output_surf_topic_ = declare_parameter<std::string>("output_surf_topic", "laser_cloud_surf");
 
   // validate parameters
   if (processing_frequency_ <= 0) {
@@ -69,6 +74,12 @@ void LidarProcessing::initialize_parameters()
 
 void LidarProcessing::initialize_ros_components()
 {
+  // configure QoS profile for lidar point cloud transport
+  rclcpp::QoS lidar_qos(queue_size_);
+  lidar_qos.reliability(rclcpp::ReliabilityPolicy::BestEffort);
+  lidar_qos.durability(rclcpp::DurabilityPolicy::Volatile);
+  lidar_qos.history(rclcpp::HistoryPolicy::KeepLast);
+
   // create reentrant callback group for parallel execution
   callback_group_ = create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
@@ -76,13 +87,13 @@ void LidarProcessing::initialize_ros_components()
   sub_options.callback_group = callback_group_;
 
   lidar_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-    "kitti/velo", 100,
+    input_topic_, lidar_qos,
     std::bind(&LidarProcessing::lidar_callback, this, std::placeholders::_1),
     sub_options);
 
-  filtered_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("velodyne_points_filtered", 100);
-  edge_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("laser_cloud_edge", 100);
-  surf_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("laser_cloud_surf", 100);
+  filtered_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(output_filtered_topic_, lidar_qos);
+  edge_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(output_edge_topic_, lidar_qos);
+  surf_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(output_surf_topic_, lidar_qos);
 
   auto timer_period = std::chrono::duration<double>(1.0 / processing_frequency_);
   timer_ = create_wall_timer(
@@ -91,6 +102,9 @@ void LidarProcessing::initialize_ros_components()
     callback_group_);
 
   RCLCPP_INFO(get_logger(), "ROS components initialized");
+  RCLCPP_INFO(get_logger(), "Input: %s, Output filtered: %s, edge: %s, surf: %s",
+    input_topic_.c_str(), output_filtered_topic_.c_str(),
+    output_edge_topic_.c_str(), output_surf_topic_.c_str());
 }
 
 void LidarProcessing::lidar_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidar_cloud_msg)
