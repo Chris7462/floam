@@ -5,7 +5,7 @@ lidar_processing_node:
     scan_period: 0.1  # seconds
     vertical_angle: 2.0  # degrees
     max_dist: 90.0  # meters
-    min_dist: 3.0  # meters
+    min_dist: 2.0  # meters
     # Processing parameters
     processing_frequency: 50.0  # Hz
     max_processing_queue_size: 3  # Maximum number of queued point clouds
@@ -17,7 +17,7 @@ odom_estimation_node:
     scan_period: 0.1  # seconds
     vertical_angle: 2.0  # degrees
     max_dist: 90.0  # meters
-    min_dist: 3.0  # meters
+    min_dist: 2.0  # meters
     # Map parameters
     map_resolution: 0.4  # meters
 
@@ -28,6 +28,6 @@ lidar_mapping_node:
     scan_period: 0.1  # seconds
     vertical_angle: 2.0  # degrees
     max_dist: 90.0  # meters
-    min_dist: 3.0  # meters
+    min_dist: 2.0  # meters
     # Map parameters
     map_resolution: 0.4  # meters
