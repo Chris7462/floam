@@ -95,13 +95,13 @@ void OdomEstimation::odom_estimation()
       mutex_lock_.unlock();
 
       if (is_odom_inited_ == false) {
-        odom_estimation_.initMapWithPoints(pointcloud_edge_in, pointcloud_surf_in);
+        odom_estimation_.init_map_with_points(pointcloud_edge_in, pointcloud_surf_in);
         is_odom_inited_ = true;
         RCLCPP_INFO(this->get_logger(), "odom inited");
       } else {
         std::chrono::time_point<std::chrono::system_clock> start, end;
         start = std::chrono::system_clock::now();
-        odom_estimation_.updatePointsToMap(pointcloud_edge_in, pointcloud_surf_in);
+        odom_estimation_.update_points_to_map(pointcloud_edge_in, pointcloud_surf_in);
         end = std::chrono::system_clock::now();
         std::chrono::duration<float> elapsed_seconds = end - start;
         total_frame_++;

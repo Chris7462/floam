@@ -129,7 +129,7 @@ void LidarProcessing::process_lidar(const pcl::PointCloud<pcl::PointXYZI>::Ptr& 
   pcl::PointCloud<pcl::PointXYZI>::Ptr& pointcloud_surf)
 {
   auto start = std::chrono::system_clock::now();
-  lidar_processing_.featureExtraction(pointcloud_in, pointcloud_edge, pointcloud_surf);
+  lidar_processing_.feature_extraction(pointcloud_in, pointcloud_edge, pointcloud_surf);
   auto end = std::chrono::system_clock::now();
 
   std::chrono::duration<float> elapsed_seconds = end - start;

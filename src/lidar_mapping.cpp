@@ -89,9 +89,9 @@ void LidarMapping::lidar_mapping()
       odometry_buf_.pop();
       mutex_lock_.unlock();
 
-      lidar_mapping_.updateCurrentPointsToMap(pointcloud_in, current_pose);
+      lidar_mapping_.update_current_points_to_map(pointcloud_in, current_pose);
 
-      pcl::PointCloud<pcl::PointXYZI>::Ptr pc_map = lidar_mapping_.getMap();
+      pcl::PointCloud<pcl::PointXYZI>::Ptr pc_map = lidar_mapping_.get_map();
       sensor_msgs::msg::PointCloud2 points_msg;
       pcl::toROSMsg(*pc_map, points_msg);
       points_msg.header.stamp = pointcloud_time;
