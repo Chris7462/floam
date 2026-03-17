@@ -26,24 +26,24 @@ class OdomEstimation : public rclcpp::Node
     void odom_estimation();
 
   private:
-    floam_core::OdomEstimation odomEstimation_;
-    std::queue<sensor_msgs::msg::PointCloud2::ConstSharedPtr> pointCloudEdgeBuf_;
-    std::queue<sensor_msgs::msg::PointCloud2::ConstSharedPtr> pointCloudSurfBuf_;
+    floam_core::OdomEstimation odom_estimation_;
+    std::queue<sensor_msgs::msg::PointCloud2::ConstSharedPtr> point_cloud_edge_buf_;
+    std::queue<sensor_msgs::msg::PointCloud2::ConstSharedPtr> point_cloud_surf_buf_;
     std::mutex mutex_lock_;
     floam_core::Lidar lidar_param_;
 
-    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subEdgeLaserCloud_;
-    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subSurfLaserCloud_;
+    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr sub_edge_lidar_cloud_;
+    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr sub_surf_lidar_cloud_;
 
-    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubLaserOdometry_;
-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pubLaserPath_;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_laser_odometry_;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_laser_path_;
 
     std::unique_ptr<tf2_ros::TransformBroadcaster> br_;
 
-    void velodyneSurfHandler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr laserCloudMsg);
-    void velodyneEdgeHandler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr laserCloudMsg);
+    void lidar_surf_handler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidar_cloud_msg);
+    void lidar_edge_handler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidar_cloud_msg);
 
-    nav_msgs::msg::Path laserPath_;
+    nav_msgs::msg::Path laser_path_;
 
     bool is_odom_inited_;
     double total_time_;

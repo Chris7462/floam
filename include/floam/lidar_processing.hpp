@@ -33,11 +33,11 @@ class LidarProcessing : public rclcpp::Node
     rclcpp::CallbackGroup::SharedPtr callback_group_;
 
     // Core processing
-    floam_core::LidarProcessing lidarProcessing_;
+    floam_core::LidarProcessing lidar_processing_;
     floam_core::Lidar lidar_param_;
 
     // Buffer
-    std::queue<sensor_msgs::msg::PointCloud2::ConstSharedPtr> pointCloudBuf_;
+    std::queue<sensor_msgs::msg::PointCloud2::ConstSharedPtr> point_cloud_buf_;
     std::mutex mutex_lock_;
 
     // Parameters
@@ -45,7 +45,7 @@ class LidarProcessing : public rclcpp::Node
     size_t max_processing_queue_size_;
 
     // Callbacks
-    void lidar_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidarCloudMsg);
+    void lidar_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidar_cloud_msg);
     void timer_callback();
 
     // Processing

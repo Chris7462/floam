@@ -47,7 +47,7 @@ LidarProcessing::LidarProcessing()
   lidar_param_.setMaxDistance(max_dist);
   lidar_param_.setMinDistance(min_dist);
 
-  lidarProcessing_.init(lidar_param_);
+  lidar_processing_.init(lidar_param_);
 
   // create reentrant callback group for parallel execution
   callback_group_ = create_callback_group(rclcpp::CallbackGroupType::Reentrant);
@@ -73,18 +73,18 @@ LidarProcessing::LidarProcessing()
   RCLCPP_INFO(get_logger(), "Lidar processing node initialized successfully");
 }
 
-void LidarProcessing::lidar_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidarCloudMsg)
+void LidarProcessing::lidar_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidar_cloud_msg)
 {
   try {
     std::lock_guard<std::mutex> lock(mutex_lock_);
 
-    if (pointCloudBuf_.size() >= max_processing_queue_size_) {
+    if (point_cloud_buf_.size() >= max_processing_queue_size_) {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
-        "Processing queue full, dropping oldest point cloud (queue size: %ld)", pointCloudBuf_.size());
-      pointCloudBuf_.pop();
+        "Processing queue full, dropping oldest point cloud (queue size: %ld)", point_cloud_buf_.size());
+      point_cloud_buf_.pop();
     }
 
-    pointCloudBuf_.push(lidarCloudMsg);
+    point_cloud_buf_.push(lidar_cloud_msg);
 
   } catch (const std::exception & e) {
     RCLCPP_ERROR(get_logger(), "Exception in lidar callback: %s", e.what());
@@ -97,11 +97,11 @@ void LidarProcessing::timer_callback()
 
   {
     std::lock_guard<std::mutex> lock(mutex_lock_);
-    if (pointCloudBuf_.empty()) {
+    if (point_cloud_buf_.empty()) {
       return;
     }
-    msg = pointCloudBuf_.front();
-    pointCloudBuf_.pop();
+    msg = point_cloud_buf_.front();
+    point_cloud_buf_.pop();
   }
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_in(new pcl::PointCloud<pcl::PointXYZI>());
@@ -129,7 +129,7 @@ void LidarProcessing::process_lidar(const pcl::PointCloud<pcl::PointXYZI>::Ptr& 
   pcl::PointCloud<pcl::PointXYZI>::Ptr& pointcloud_surf)
 {
   auto start = std::chrono::system_clock::now();
-  lidarProcessing_.featureExtraction(pointcloud_in, pointcloud_edge, pointcloud_surf);
+  lidar_processing_.featureExtraction(pointcloud_in, pointcloud_edge, pointcloud_surf);
   auto end = std::chrono::system_clock::now();
 
   std::chrono::duration<float> elapsed_seconds = end - start;
@@ -143,26 +143,26 @@ void LidarProcessing::publish_lidar_result(
   const pcl::PointCloud<pcl::PointXYZI>::Ptr& pointcloud_surf,
   const rclcpp::Time& pointcloud_time)
 {
-  sensor_msgs::msg::PointCloud2 lidarCloudFilteredMsg;
+  sensor_msgs::msg::PointCloud2 lidar_cloud_filtered_msg;
   pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_filtered(new pcl::PointCloud<pcl::PointXYZI>());
   *pointcloud_filtered += *pointcloud_edge;
   *pointcloud_filtered += *pointcloud_surf;
-  pcl::toROSMsg(*pointcloud_filtered, lidarCloudFilteredMsg);
-  lidarCloudFilteredMsg.header.stamp = pointcloud_time;
-  lidarCloudFilteredMsg.header.frame_id = "base_link";
-  filtered_pub_->publish(lidarCloudFilteredMsg);
+  pcl::toROSMsg(*pointcloud_filtered, lidar_cloud_filtered_msg);
+  lidar_cloud_filtered_msg.header.stamp = pointcloud_time;
+  lidar_cloud_filtered_msg.header.frame_id = "base_link";
+  filtered_pub_->publish(lidar_cloud_filtered_msg);
 
-  sensor_msgs::msg::PointCloud2 edgePointsMsg;
-  pcl::toROSMsg(*pointcloud_edge, edgePointsMsg);
-  edgePointsMsg.header.stamp = pointcloud_time;
-  edgePointsMsg.header.frame_id = "base_link";
-  edge_pub_->publish(edgePointsMsg);
+  sensor_msgs::msg::PointCloud2 edge_points_msg;
+  pcl::toROSMsg(*pointcloud_edge, edge_points_msg);
+  edge_points_msg.header.stamp = pointcloud_time;
+  edge_points_msg.header.frame_id = "base_link";
+  edge_pub_->publish(edge_points_msg);
 
-  sensor_msgs::msg::PointCloud2 surfPointsMsg;
-  pcl::toROSMsg(*pointcloud_surf, surfPointsMsg);
-  surfPointsMsg.header.stamp = pointcloud_time;
-  surfPointsMsg.header.frame_id = "base_link";
-  surf_pub_->publish(surfPointsMsg);
+  sensor_msgs::msg::PointCloud2 surf_points_msg;
+  pcl::toROSMsg(*pointcloud_surf, surf_points_msg);
+  surf_points_msg.header.stamp = pointcloud_time;
+  surf_points_msg.header.frame_id = "base_link";
+  surf_pub_->publish(surf_points_msg);
 }
 
 } // namespace floam

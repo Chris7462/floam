@@ -8,7 +8,7 @@
 #include <thread>
 #include <chrono>
 
-// ros header
+// pcl header
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
@@ -20,7 +20,7 @@ namespace floam
 {
 
 OdomEstimation::OdomEstimation()
-  : Node("odom_estimation_node"), laserPath_{}, is_odom_inited_(false), total_time_(0.0), total_frame_(0)
+  : Node("odom_estimation_node"), laser_path_{}, is_odom_inited_(false), total_time_(0.0), total_frame_(0)
 {
   int scan_line = 64;
   double scan_period = 0.1;
@@ -50,15 +50,15 @@ OdomEstimation::OdomEstimation()
   lidar_param_.setMaxDistance(max_dist);
   lidar_param_.setMinDistance(min_dist);
 
-  odomEstimation_.init(map_resolution);
+  odom_estimation_.init(map_resolution);
 
-  subEdgeLaserCloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-    "laser_cloud_edge", 100, std::bind(&OdomEstimation::velodyneEdgeHandler, this, std::placeholders::_1));
-  subSurfLaserCloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-    "laser_cloud_surf", 100, std::bind(&OdomEstimation::velodyneSurfHandler, this, std::placeholders::_1));
+  sub_edge_lidar_cloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+    "laser_cloud_edge", 100, std::bind(&OdomEstimation::lidar_edge_handler, this, std::placeholders::_1));
+  sub_surf_lidar_cloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+    "laser_cloud_surf", 100, std::bind(&OdomEstimation::lidar_surf_handler, this, std::placeholders::_1));
 
-  pubLaserOdometry_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", 100);
-  pubLaserPath_ = this->create_publisher<nav_msgs::msg::Path>("odom_path", 100);
+  pub_laser_odometry_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", 100);
+  pub_laser_path_ = this->create_publisher<nav_msgs::msg::Path>("odom_path", 100);
 
   br_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 }
@@ -66,18 +66,18 @@ OdomEstimation::OdomEstimation()
 void OdomEstimation::odom_estimation()
 {
   while (1) {
-    if (!pointCloudEdgeBuf_.empty() && !pointCloudSurfBuf_.empty()) {
+    if (!point_cloud_edge_buf_.empty() && !point_cloud_surf_buf_.empty()) {
       // read data
       mutex_lock_.lock();
-      if (!pointCloudSurfBuf_.empty() && (pointCloudSurfBuf_.front()->header.stamp.sec < pointCloudEdgeBuf_.front()->header.stamp.sec - 0.5*lidar_param_.scan_period)) {
-        pointCloudSurfBuf_.pop();
+      if (!point_cloud_surf_buf_.empty() && (point_cloud_surf_buf_.front()->header.stamp.sec < point_cloud_edge_buf_.front()->header.stamp.sec - 0.5*lidar_param_.scan_period)) {
+        point_cloud_surf_buf_.pop();
         RCLCPP_WARN(this->get_logger(), "time stamp unaligned with extra point cloud, pls check your data --> odom correction");
         mutex_lock_.unlock();
         continue;
       }
 
-      if (!pointCloudEdgeBuf_.empty() && (pointCloudEdgeBuf_.front()->header.stamp.sec < pointCloudSurfBuf_.front()->header.stamp.sec - 0.5*lidar_param_.scan_period)) {
-        pointCloudEdgeBuf_.pop();
+      if (!point_cloud_edge_buf_.empty() && (point_cloud_edge_buf_.front()->header.stamp.sec < point_cloud_surf_buf_.front()->header.stamp.sec - 0.5*lidar_param_.scan_period)) {
+        point_cloud_edge_buf_.pop();
         RCLCPP_WARN(this->get_logger(), "time stamp unaligned with extra point cloud, pls check your data --> odom correction");
         mutex_lock_.unlock();
         continue;
@@ -86,22 +86,22 @@ void OdomEstimation::odom_estimation()
       // if time aligned
       pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_surf_in(new pcl::PointCloud<pcl::PointXYZI>());
       pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_edge_in(new pcl::PointCloud<pcl::PointXYZI>());
-      pcl::fromROSMsg(*pointCloudEdgeBuf_.front(), *pointcloud_edge_in);
-      pcl::fromROSMsg(*pointCloudSurfBuf_.front(), *pointcloud_surf_in);
+      pcl::fromROSMsg(*point_cloud_edge_buf_.front(), *pointcloud_edge_in);
+      pcl::fromROSMsg(*point_cloud_surf_buf_.front(), *pointcloud_surf_in);
 
-      rclcpp::Time pointcloud_time = pointCloudSurfBuf_.front()->header.stamp;
-      pointCloudEdgeBuf_.pop();
-      pointCloudSurfBuf_.pop();
+      rclcpp::Time pointcloud_time = point_cloud_surf_buf_.front()->header.stamp;
+      point_cloud_edge_buf_.pop();
+      point_cloud_surf_buf_.pop();
       mutex_lock_.unlock();
 
       if (is_odom_inited_ == false) {
-        odomEstimation_.initMapWithPoints(pointcloud_edge_in, pointcloud_surf_in);
+        odom_estimation_.initMapWithPoints(pointcloud_edge_in, pointcloud_surf_in);
         is_odom_inited_ = true;
         RCLCPP_INFO(this->get_logger(), "odom inited");
       } else {
         std::chrono::time_point<std::chrono::system_clock> start, end;
         start = std::chrono::system_clock::now();
-        odomEstimation_.updatePointsToMap(pointcloud_edge_in, pointcloud_surf_in);
+        odom_estimation_.updatePointsToMap(pointcloud_edge_in, pointcloud_surf_in);
         end = std::chrono::system_clock::now();
         std::chrono::duration<float> elapsed_seconds = end - start;
         total_frame_++;
@@ -110,8 +110,8 @@ void OdomEstimation::odom_estimation()
         RCLCPP_INFO(this->get_logger(), "average odom estimation time %f ms\n", total_time_/total_frame_);
       }
 
-      Eigen::Quaterniond q_current(odomEstimation_.odom.rotation());
-      Eigen::Vector3d t_current = odomEstimation_.odom.translation();
+      Eigen::Quaterniond q_current(odom_estimation_.odom.rotation());
+      Eigen::Vector3d t_current = odom_estimation_.odom.translation();
 
       geometry_msgs::msg::TransformStamped t;
       t.header.stamp = pointcloud_time;
@@ -130,27 +130,27 @@ void OdomEstimation::odom_estimation()
       br_->sendTransform(t);
 
       // publish odometry
-      nav_msgs::msg::Odometry laserOdometry;
-      laserOdometry.header.frame_id = "map";
-      laserOdometry.child_frame_id = "base_link";
-      laserOdometry.header.stamp = pointcloud_time;
-      laserOdometry.pose.pose.orientation.x = q_current.x();
-      laserOdometry.pose.pose.orientation.y = q_current.y();
-      laserOdometry.pose.pose.orientation.z = q_current.z();
-      laserOdometry.pose.pose.orientation.w = q_current.w();
-      laserOdometry.pose.pose.position.x = t_current.x();
-      laserOdometry.pose.pose.position.y = t_current.y();
-      laserOdometry.pose.pose.position.z = t_current.z();
-      pubLaserOdometry_->publish(laserOdometry);
+      nav_msgs::msg::Odometry laser_odometry;
+      laser_odometry.header.frame_id = "map";
+      laser_odometry.child_frame_id = "base_link";
+      laser_odometry.header.stamp = pointcloud_time;
+      laser_odometry.pose.pose.orientation.x = q_current.x();
+      laser_odometry.pose.pose.orientation.y = q_current.y();
+      laser_odometry.pose.pose.orientation.z = q_current.z();
+      laser_odometry.pose.pose.orientation.w = q_current.w();
+      laser_odometry.pose.pose.position.x = t_current.x();
+      laser_odometry.pose.pose.position.y = t_current.y();
+      laser_odometry.pose.pose.position.z = t_current.z();
+      pub_laser_odometry_->publish(laser_odometry);
 
       // publish path
-      geometry_msgs::msg::PoseStamped laserPose;
-      laserPose.header = laserOdometry.header;
-      laserPose.pose = laserOdometry.pose.pose;
+      geometry_msgs::msg::PoseStamped laser_pose;
+      laser_pose.header = laser_odometry.header;
+      laser_pose.pose = laser_odometry.pose.pose;
 
-      laserPath_.header = laserOdometry.header;
-      laserPath_.poses.push_back(laserPose);
-      pubLaserPath_->publish(laserPath_);
+      laser_path_.header = laser_odometry.header;
+      laser_path_.poses.push_back(laser_pose);
+      pub_laser_path_->publish(laser_path_);
     }
 
     //sleep 2 ms every time
@@ -159,17 +159,17 @@ void OdomEstimation::odom_estimation()
   }
 }
 
-void OdomEstimation::velodyneSurfHandler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr laserCloudMsg)
+void OdomEstimation::lidar_surf_handler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidar_cloud_msg)
 {
   mutex_lock_.lock();
-  pointCloudSurfBuf_.push(laserCloudMsg);
+  point_cloud_surf_buf_.push(lidar_cloud_msg);
   mutex_lock_.unlock();
 }
 
-void OdomEstimation::velodyneEdgeHandler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr laserCloudMsg)
+void OdomEstimation::lidar_edge_handler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidar_cloud_msg)
 {
   mutex_lock_.lock();
-  pointCloudEdgeBuf_.push(laserCloudMsg);
+  point_cloud_edge_buf_.push(lidar_cloud_msg);
   mutex_lock_.unlock();
 }
 
