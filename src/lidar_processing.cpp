@@ -14,7 +14,8 @@ namespace floam
 {
 
 LidarProcessing::LidarProcessing()
-  : Node("lidar_processing_node"), total_time_(0.0), total_frame_(0)
+  : Node("lidar_processing_node"), processing_in_progress_(false),
+    total_time_(0.0), total_frame_(0)
 {
   initialize_parameters();
   initialize_ros_components();
@@ -112,6 +113,11 @@ void LidarProcessing::lidar_callback(const sensor_msgs::msg::PointCloud2::ConstS
 
 void LidarProcessing::timer_callback()
 {
+  // skip if already processing — lidar_processing_ is not thread-safe
+  if (processing_in_progress_.load()) {
+    return;
+  }
+
   sensor_msgs::msg::PointCloud2::ConstSharedPtr msg;
 
   {
@@ -122,6 +128,8 @@ void LidarProcessing::timer_callback()
     msg = point_cloud_buf_.front();
     point_cloud_buf_.pop();
   }
+
+  processing_in_progress_.store(true);
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_in(new pcl::PointCloud<pcl::PointXYZI>());
   pcl::fromROSMsg(*msg, *pointcloud_in);
@@ -145,6 +153,8 @@ void LidarProcessing::timer_callback()
   } catch (const std::exception & e) {
     RCLCPP_ERROR(get_logger(), "Exception during lidar processing: %s", e.what());
   }
+
+  processing_in_progress_.store(false);
 }
 
 void LidarProcessing::process_lidar(const pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_in,
@@ -164,7 +174,7 @@ void LidarProcessing::process_lidar(const pcl::PointCloud<pcl::PointXYZI>::Ptr p
 void LidarProcessing::publish_lidar_result(
   const pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_edge,
   const pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_surf,
-  const rclcpp::Time& pointcloud_time)
+  const rclcpp::Time & pointcloud_time)
 {
   sensor_msgs::msg::PointCloud2 lidar_cloud_filtered_msg;
   pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_filtered(new pcl::PointCloud<pcl::PointXYZI>());

@@ -5,6 +5,7 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
 // c++ lib
+#include <atomic>
 #include <mutex>
 #include <queue>
 
@@ -100,6 +101,9 @@ private:
   int queue_size_;
   double processing_frequency_;
   size_t max_processing_queue_size_;
+
+  // State
+  std::atomic<bool> processing_in_progress_;
 
   // Timing
   double total_time_;
