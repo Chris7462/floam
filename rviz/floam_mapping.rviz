@@ -3,7 +3,8 @@ Panels:
     Help Height: 78
     Name: Displays
     Property Tree Widget:
-      Expanded: ~
+      Expanded:
+        - /map1/Topic1
       Splitter Ratio: 0.5
     Tree Height: 494
   - Class: rviz_common/Selection
@@ -98,12 +99,12 @@ Visualization Manager:
       Position Transformer: XYZ
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.009999999776482582
+      Size (m): 0.30000001192092896
       Style: Points
       Topic:
         Depth: 5
         Durability Policy: Volatile
-        History Policy: Keep Last
+        History Policy: System Default
         Reliability Policy: Reliable
         Value: /map
       Use Fixed Frame: true
@@ -183,25 +184,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 106.46024322509766
+      Distance: 104.57879638671875
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -7.8558454513549805
-        Y: -1.1727551221847534
+        X: 0
+        Y: 0
         Z: 0
-      Focal Shape Fixed Size: true
+      Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8297972083091736
+      Pitch: 0.7853981852531433
       Target Frame: base_link
       Value: Orbit (rviz_default_plugins)
-      Yaw: 4.852389335632324
+      Yaw: 0.7853981852531433
     Saved: ~
 Window Geometry:
   Displays:

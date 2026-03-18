@@ -76,7 +76,7 @@ void LidarProcessing::initialize_ros_components()
 {
   // configure QoS profile for lidar point cloud transport
   rclcpp::QoS lidar_qos(queue_size_);
-  lidar_qos.reliability(rclcpp::ReliabilityPolicy::BestEffort);
+  lidar_qos.reliability(rclcpp::ReliabilityPolicy::Reliable);
   lidar_qos.durability(rclcpp::DurabilityPolicy::Volatile);
   lidar_qos.history(rclcpp::HistoryPolicy::KeepLast);
 
@@ -149,7 +149,11 @@ void LidarProcessing::timer_callback()
     process_lidar(pointcloud_in, pointcloud_edge, pointcloud_surf);
 
     if (!pointcloud_edge->empty() || !pointcloud_surf->empty()) {
-      publish_lidar_result(pointcloud_edge, pointcloud_surf, pointcloud_time);
+      if (edge_pub_->get_subscription_count() > 0 ||
+          surf_pub_->get_subscription_count() > 0 ||
+          filtered_pub_->get_subscription_count() > 0) {
+        publish_lidar_result(pointcloud_edge, pointcloud_surf, pointcloud_time);
+      }
     } else {
       RCLCPP_WARN(get_logger(), "Lidar processing returned empty result");
     }

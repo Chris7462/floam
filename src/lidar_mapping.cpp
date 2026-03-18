@@ -19,27 +19,12 @@ namespace floam
 LidarMapping::LidarMapping()
   : Node("lidar_mapping_node")
 {
-  int scan_line = 64;
-  double scan_period = 0.1;
-  double vertical_angle = 2.0;
-  double max_dist = 60.0;
-  double min_dist = 2.0;
-  double map_resolution = 0.4;
-
-  this->declare_parameter("scan_line", scan_line);
-  this->declare_parameter("scan_period", scan_period);
-  this->declare_parameter("vertical_angle", vertical_angle);
-  this->declare_parameter("max_dist", max_dist);
-  this->declare_parameter("min_dist", min_dist);
-  this->declare_parameter("map_resolution", map_resolution);
-
-  // load from parameter if provided
-  scan_line = this->get_parameter("scan_line").get_parameter_value().get<int>();
-  scan_period = this->get_parameter("scan_period").get_parameter_value().get<double>();
-  vertical_angle = this->get_parameter("vertical_angle").get_parameter_value().get<double>();
-  max_dist = this->get_parameter("max_dist").get_parameter_value().get<double>();
-  min_dist = this->get_parameter("min_dist").get_parameter_value().get<double>();
-  map_resolution = this->get_parameter("map_resolution").get_parameter_value().get<double>();
+  const int scan_line = declare_parameter<int>("scan_line", 64);
+  const double scan_period = declare_parameter<double>("scan_period", 0.1);
+  const double vertical_angle = declare_parameter<double>("vertical_angle", 2.0);
+  const double max_dist = declare_parameter<double>("max_dist", 90.0);
+  const double min_dist = declare_parameter<double>("min_dist", 2.0);
+  const double map_resolution = declare_parameter<double>("map_resolution", 0.4);
 
 // set lidar parameters
   lidar_param_.scan_period = scan_period;
@@ -50,12 +35,21 @@ LidarMapping::LidarMapping()
 
   lidar_mapping_.init(map_resolution);
 
-  sub_lidar_cloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-    "velodyne_points_filtered", 100, std::bind(&LidarMapping::lidar_handler, this, std::placeholders::_1));
-  sub_odometry_ = this->create_subscription<nav_msgs::msg::Odometry>(
-    "odom", 100, std::bind(&LidarMapping::odom_callback, this, std::placeholders::_1));
+  // configure QoS profile for lidar point cloud transport
+  rclcpp::QoS lidar_qos(10);
+  lidar_qos.reliability(rclcpp::ReliabilityPolicy::Reliable);
+  lidar_qos.durability(rclcpp::DurabilityPolicy::Volatile);
+  lidar_qos.history(rclcpp::HistoryPolicy::KeepLast);
 
-  pub_map_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("map", 100);
+  sub_lidar_cloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+    "velodyne_points_filtered", lidar_qos,
+    std::bind(&LidarMapping::lidar_handler, this, std::placeholders::_1));
+
+  sub_odometry_ = this->create_subscription<nav_msgs::msg::Odometry>(
+    "odom", lidar_qos,
+    std::bind(&LidarMapping::odom_callback, this, std::placeholders::_1));
+
+  pub_map_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("map", lidar_qos);
 }
 
 void LidarMapping::lidar_mapping()

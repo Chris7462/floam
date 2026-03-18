@@ -22,27 +22,12 @@ namespace floam
 OdomEstimation::OdomEstimation()
   : Node("odom_estimation_node"), laser_path_{}, is_odom_inited_(false), total_time_(0.0), total_frame_(0)
 {
-  int scan_line = 64;
-  double scan_period = 0.1;
-  double vertical_angle = 2.0;
-  double max_dist = 60.0;
-  double min_dist = 3.0;
-  double map_resolution = 0.4;
-
-  this->declare_parameter("scan_line", scan_line);
-  this->declare_parameter("scan_period", scan_period);
-  this->declare_parameter("vertical_angle", vertical_angle);
-  this->declare_parameter("max_dist", max_dist);
-  this->declare_parameter("min_dist", min_dist);
-  this->declare_parameter("map_resolution", map_resolution);
-
-  // load from parameter if provided
-  scan_line = this->get_parameter("scan_line").get_parameter_value().get<int>();
-  scan_period = this->get_parameter("scan_period").get_parameter_value().get<double>();
-  vertical_angle = this->get_parameter("vertical_angle").get_parameter_value().get<double>();
-  max_dist = this->get_parameter("max_dist").get_parameter_value().get<double>();
-  min_dist = this->get_parameter("min_dist").get_parameter_value().get<double>();
-  map_resolution = this->get_parameter("map_resolution").get_parameter_value().get<double>();
+  const int scan_line = declare_parameter<int>("scan_line", 64);
+  const double scan_period = declare_parameter<double>("scan_period", 0.1);
+  const double vertical_angle = declare_parameter<double>("vertical_angle", 2.0);
+  const double max_dist = declare_parameter<double>("max_dist", 90.0);
+  const double min_dist = declare_parameter<double>("min_dist", 2.0);
+  const double map_resolution = declare_parameter<double>("map_resolution", 0.4);
 
 // set lidar parameters
   lidar_param_.scan_period = scan_period;
@@ -53,13 +38,22 @@ OdomEstimation::OdomEstimation()
 
   odom_estimation_.init(map_resolution);
 
-  sub_edge_lidar_cloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-    "laser_cloud_edge", 100, std::bind(&OdomEstimation::lidar_edge_handler, this, std::placeholders::_1));
-  sub_surf_lidar_cloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-    "laser_cloud_surf", 100, std::bind(&OdomEstimation::lidar_surf_handler, this, std::placeholders::_1));
+  // configure QoS profile for lidar point cloud transport
+  rclcpp::QoS lidar_qos(10);
+  lidar_qos.reliability(rclcpp::ReliabilityPolicy::Reliable);
+  lidar_qos.durability(rclcpp::DurabilityPolicy::Volatile);
+  lidar_qos.history(rclcpp::HistoryPolicy::KeepLast);
 
-  pub_laser_odometry_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", 100);
-  pub_laser_path_ = this->create_publisher<nav_msgs::msg::Path>("odom_path", 100);
+  sub_edge_lidar_cloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+    "laser_cloud_edge", lidar_qos,
+    std::bind(&OdomEstimation::lidar_edge_handler, this, std::placeholders::_1));
+
+  sub_surf_lidar_cloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+    "laser_cloud_surf", lidar_qos,
+    std::bind(&OdomEstimation::lidar_surf_handler, this, std::placeholders::_1));
+
+  pub_laser_odometry_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", lidar_qos);
+  pub_laser_path_ = this->create_publisher<nav_msgs::msg::Path>("odom_path", lidar_qos);
 
   br_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 }
@@ -70,14 +64,16 @@ void OdomEstimation::odom_estimation()
     if (!point_cloud_edge_buf_.empty() && !point_cloud_surf_buf_.empty()) {
       // read data
       mutex_lock_.lock();
-      if (!point_cloud_surf_buf_.empty() && (point_cloud_surf_buf_.front()->header.stamp.sec < point_cloud_edge_buf_.front()->header.stamp.sec - 0.5*lidar_param_.scan_period)) {
+      if (!point_cloud_surf_buf_.empty() &&
+        (rclcpp::Time(point_cloud_surf_buf_.front()->header.stamp) < rclcpp::Time(point_cloud_edge_buf_.front()->header.stamp) - rclcpp::Duration::from_seconds(0.5 * lidar_param_.scan_period))) {
         point_cloud_surf_buf_.pop();
         RCLCPP_WARN(this->get_logger(), "time stamp unaligned with extra point cloud, pls check your data --> odom correction");
         mutex_lock_.unlock();
         continue;
       }
 
-      if (!point_cloud_edge_buf_.empty() && (point_cloud_edge_buf_.front()->header.stamp.sec < point_cloud_surf_buf_.front()->header.stamp.sec - 0.5*lidar_param_.scan_period)) {
+      if (!point_cloud_edge_buf_.empty() &&
+        (rclcpp::Time(point_cloud_edge_buf_.front()->header.stamp) < rclcpp::Time(point_cloud_surf_buf_.front()->header.stamp) - rclcpp::Duration::from_seconds(0.5 * lidar_param_.scan_period))) {
         point_cloud_edge_buf_.pop();
         RCLCPP_WARN(this->get_logger(), "time stamp unaligned with extra point cloud, pls check your data --> odom correction");
         mutex_lock_.unlock();
