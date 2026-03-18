@@ -27,6 +27,16 @@ odom_estimation_node:
     min_dist: 2.0  # meters
     # Map parameters
     map_resolution: 0.4  # meters
+    # Processing parameters
+    processing_frequency: 50.0  # Hz
+    max_processing_queue_size: 3  # Maximum number of queued point cloud pairs
+    # QoS parameters
+    queue_size: 10
+    # Topic parameters
+    input_edge_topic: "laser_cloud_edge"
+    input_surf_topic: "laser_cloud_surf"
+    output_odom_topic: "odom"
+    output_path_topic: "odom_path"
 
 lidar_mapping_node:
   ros__parameters:

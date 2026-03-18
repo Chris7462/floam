@@ -5,8 +5,9 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
 // c++ header
-#include <thread>
 #include <chrono>
+#include <functional>
+#include <stdexcept>
 
 // pcl header
 #include <pcl/point_cloud.h>
@@ -20,7 +21,8 @@ namespace floam
 {
 
 OdomEstimation::OdomEstimation()
-  : Node("odom_estimation_node"), laser_path_{}, is_odom_inited_(false), total_time_(0.0), total_frame_(0)
+  : Node("odom_estimation_node"), laser_path_{}, processing_in_progress_(false),
+    is_odom_inited_(false), total_time_(0.0), total_frame_(0)
 {
   initialize_parameters();
   initialize_ros_components();
@@ -42,150 +44,185 @@ void OdomEstimation::initialize_parameters()
   lidar_param_.max_distance = declare_parameter<double>("max_dist", 90.0);
   lidar_param_.min_distance = declare_parameter<double>("min_dist", 2.0);
   const double map_resolution = declare_parameter<double>("map_resolution", 0.4);
+  queue_size_ = declare_parameter<int>("queue_size", 10);
+  max_processing_queue_size_ = static_cast<size_t>(declare_parameter<int>("max_processing_queue_size", 3));
+  processing_frequency_ = declare_parameter<double>("processing_frequency", 50.0);
+  input_edge_topic_ = declare_parameter<std::string>("input_edge_topic", "laser_cloud_edge");
+  input_surf_topic_ = declare_parameter<std::string>("input_surf_topic", "laser_cloud_surf");
+  output_odom_topic_ = declare_parameter<std::string>("output_odom_topic", "odom");
+  output_path_topic_ = declare_parameter<std::string>("output_path_topic", "odom_path");
+
+  // validate processing frequency to avoid division by zero in timer creation
+  if (processing_frequency_ <= 0) {
+    throw std::runtime_error("Invalid processing frequency: " + std::to_string(processing_frequency_));
+  }
 
   odom_estimation_.init(map_resolution);
 
   RCLCPP_INFO(get_logger(),
     "Parameters initialized - num_scan_lines: %d, scan_period: %.2f, max_dist: %.1f, min_dist: %.1f, "
-    "map_resolution: %.2f",
+    "map_resolution: %.2f, processing_frequency: %.1f Hz, max_processing_queue_size: %zu",
     lidar_param_.num_scan_lines, lidar_param_.scan_period, lidar_param_.max_distance,
-    lidar_param_.min_distance, map_resolution);
+    lidar_param_.min_distance, map_resolution, processing_frequency_, max_processing_queue_size_);
 }
 
 void OdomEstimation::initialize_ros_components()
 {
   // configure QoS profile for lidar point cloud transport
-  rclcpp::QoS lidar_qos(10);
+  rclcpp::QoS lidar_qos(queue_size_);
   lidar_qos.reliability(rclcpp::ReliabilityPolicy::Reliable);
   lidar_qos.durability(rclcpp::DurabilityPolicy::Volatile);
   lidar_qos.history(rclcpp::HistoryPolicy::KeepLast);
 
-  sub_edge_lidar_cloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-    "laser_cloud_edge", lidar_qos,
-    std::bind(&OdomEstimation::lidar_edge_handler, this, std::placeholders::_1));
+  // create reentrant callback group for parallel execution
+  callback_group_ = create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
-  sub_surf_lidar_cloud_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-    "laser_cloud_surf", lidar_qos,
-    std::bind(&OdomEstimation::lidar_surf_handler, this, std::placeholders::_1));
+  // create message filters subscribers
+  sub_edge_lidar_cloud_.subscribe(this, input_edge_topic_, lidar_qos.get_rmw_qos_profile());
+  sub_surf_lidar_cloud_.subscribe(this, input_surf_topic_, lidar_qos.get_rmw_qos_profile());
 
-  pub_laser_odometry_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", lidar_qos);
-  pub_laser_path_ = this->create_publisher<nav_msgs::msg::Path>("odom_path", lidar_qos);
+  // create exact time synchronizer
+  sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(
+    SyncPolicy(queue_size_), sub_edge_lidar_cloud_, sub_surf_lidar_cloud_);
+  sync_->registerCallback(
+    std::bind(&OdomEstimation::lidar_callback, this, std::placeholders::_1, std::placeholders::_2));
+
+  pub_laser_odometry_ = this->create_publisher<nav_msgs::msg::Odometry>(output_odom_topic_, lidar_qos);
+  pub_laser_path_ = this->create_publisher<nav_msgs::msg::Path>(output_path_topic_, lidar_qos);
 
   br_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
+  auto timer_period = std::chrono::duration<double>(1.0 / processing_frequency_);
+  timer_ = create_wall_timer(
+    std::chrono::duration_cast<std::chrono::nanoseconds>(timer_period),
+    std::bind(&OdomEstimation::timer_callback, this),
+    callback_group_);
+
   RCLCPP_INFO(get_logger(), "ROS components initialized");
+  RCLCPP_INFO(get_logger(), "Input edge: %s, surf: %s, Output odom: %s, path: %s",
+    input_edge_topic_.c_str(), input_surf_topic_.c_str(),
+    output_odom_topic_.c_str(), output_path_topic_.c_str());
 }
 
-void OdomEstimation::odom_estimation()
+void OdomEstimation::lidar_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr edge_msg,
+  const sensor_msgs::msg::PointCloud2::ConstSharedPtr surf_msg)
 {
-  while (1) {
-    if (!point_cloud_edge_buf_.empty() && !point_cloud_surf_buf_.empty()) {
-      // read data
-      mutex_lock_.lock();
-      if (!point_cloud_surf_buf_.empty() &&
-        (rclcpp::Time(point_cloud_surf_buf_.front()->header.stamp) < rclcpp::Time(point_cloud_edge_buf_.front()->header.stamp) - rclcpp::Duration::from_seconds(0.5 * lidar_param_.scan_period))) {
-        point_cloud_surf_buf_.pop();
-        RCLCPP_WARN(this->get_logger(), "time stamp unaligned with extra point cloud, pls check your data --> odom correction");
-        mutex_lock_.unlock();
-        continue;
-      }
+  try {
+    std::lock_guard<std::mutex> lock(mutex_lock_);
 
-      if (!point_cloud_edge_buf_.empty() &&
-        (rclcpp::Time(point_cloud_edge_buf_.front()->header.stamp) < rclcpp::Time(point_cloud_surf_buf_.front()->header.stamp) - rclcpp::Duration::from_seconds(0.5 * lidar_param_.scan_period))) {
-        point_cloud_edge_buf_.pop();
-        RCLCPP_WARN(this->get_logger(), "time stamp unaligned with extra point cloud, pls check your data --> odom correction");
-        mutex_lock_.unlock();
-        continue;
-      }
-
-      // if time aligned
-      pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_surf_in(new pcl::PointCloud<pcl::PointXYZI>());
-      pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_edge_in(new pcl::PointCloud<pcl::PointXYZI>());
-      pcl::fromROSMsg(*point_cloud_edge_buf_.front(), *pointcloud_edge_in);
-      pcl::fromROSMsg(*point_cloud_surf_buf_.front(), *pointcloud_surf_in);
-
-      rclcpp::Time pointcloud_time = point_cloud_surf_buf_.front()->header.stamp;
-      point_cloud_edge_buf_.pop();
-      point_cloud_surf_buf_.pop();
-      mutex_lock_.unlock();
-
-      if (is_odom_inited_ == false) {
-        odom_estimation_.init_map_with_points(pointcloud_edge_in, pointcloud_surf_in);
-        is_odom_inited_ = true;
-        RCLCPP_INFO(this->get_logger(), "odom inited");
-      } else {
-        std::chrono::time_point<std::chrono::system_clock> start, end;
-        start = std::chrono::system_clock::now();
-        odom_estimation_.update_points_to_map(pointcloud_edge_in, pointcloud_surf_in);
-        end = std::chrono::system_clock::now();
-        std::chrono::duration<float> elapsed_seconds = end - start;
-        total_frame_++;
-        float time_temp = elapsed_seconds.count() * 1000;
-        total_time_ += time_temp;
-        RCLCPP_INFO(this->get_logger(), "average odom estimation time %f ms\n", total_time_/total_frame_);
-      }
-
-      Eigen::Quaterniond q_current(odom_estimation_.odom.rotation());
-      Eigen::Vector3d t_current = odom_estimation_.odom.translation();
-
-      geometry_msgs::msg::TransformStamped t;
-      t.header.stamp = pointcloud_time;
-      t.header.frame_id = "map";
-      t.child_frame_id = "base_link";
-
-      t.transform.translation.x = t_current.x();
-      t.transform.translation.y = t_current.y();
-      t.transform.translation.z = t_current.z();
-
-      tf2::Quaternion q(q_current.x(), q_current.y(), q_current.z(), q_current.w());
-      t.transform.rotation.x = q.x();
-      t.transform.rotation.y = q.y();
-      t.transform.rotation.z = q.z();
-      t.transform.rotation.w = q.w();
-      br_->sendTransform(t);
-
-      // publish odometry
-      nav_msgs::msg::Odometry laser_odometry;
-      laser_odometry.header.frame_id = "map";
-      laser_odometry.child_frame_id = "base_link";
-      laser_odometry.header.stamp = pointcloud_time;
-      laser_odometry.pose.pose.orientation.x = q_current.x();
-      laser_odometry.pose.pose.orientation.y = q_current.y();
-      laser_odometry.pose.pose.orientation.z = q_current.z();
-      laser_odometry.pose.pose.orientation.w = q_current.w();
-      laser_odometry.pose.pose.position.x = t_current.x();
-      laser_odometry.pose.pose.position.y = t_current.y();
-      laser_odometry.pose.pose.position.z = t_current.z();
-      pub_laser_odometry_->publish(laser_odometry);
-
-      // publish path
-      geometry_msgs::msg::PoseStamped laser_pose;
-      laser_pose.header = laser_odometry.header;
-      laser_pose.pose = laser_odometry.pose.pose;
-
-      laser_path_.header = laser_odometry.header;
-      laser_path_.poses.push_back(laser_pose);
-      pub_laser_path_->publish(laser_path_);
+    if (point_cloud_buf_.size() >= max_processing_queue_size_) {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
+        "Processing queue full, dropping oldest point cloud pair (queue size: %ld)",
+        point_cloud_buf_.size());
+      point_cloud_buf_.pop();
     }
 
-    //sleep 2 ms every time
-    std::chrono::milliseconds dura(2);
-    std::this_thread::sleep_for(dura);
+    point_cloud_buf_.push({edge_msg, surf_msg});
+
+  } catch (const std::exception & e) {
+    RCLCPP_ERROR(get_logger(), "Exception in lidar callback: %s", e.what());
   }
 }
 
-void OdomEstimation::lidar_surf_handler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidar_cloud_msg)
+void OdomEstimation::timer_callback()
 {
-  mutex_lock_.lock();
-  point_cloud_surf_buf_.push(lidar_cloud_msg);
-  mutex_lock_.unlock();
+  // skip if already processing — odom_estimation_ is not thread-safe
+  if (processing_in_progress_.load()) {
+    return;
+  }
+
+  PointCloudPair msg_pair;
+
+  {
+    std::lock_guard<std::mutex> lock(mutex_lock_);
+    if (point_cloud_buf_.empty()) {
+      return;
+    }
+    msg_pair = point_cloud_buf_.front();
+    point_cloud_buf_.pop();
+  }
+
+  processing_in_progress_.store(true);
+
+  rclcpp::Time pointcloud_time = msg_pair.first->header.stamp;
+
+  try {
+    process_odom(msg_pair);
+
+    if (pub_laser_odometry_->get_subscription_count() > 0 ||
+        pub_laser_path_->get_subscription_count() > 0) {
+      publish_odom_result(pointcloud_time);
+    }
+  } catch (const std::exception & e) {
+    RCLCPP_ERROR(get_logger(), "Exception during odom estimation: %s", e.what());
+  }
+
+  processing_in_progress_.store(false);
 }
 
-void OdomEstimation::lidar_edge_handler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidar_cloud_msg)
+void OdomEstimation::process_odom(const PointCloudPair & msg_pair)
 {
-  mutex_lock_.lock();
-  point_cloud_edge_buf_.push(lidar_cloud_msg);
-  mutex_lock_.unlock();
+  pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_edge_in(new pcl::PointCloud<pcl::PointXYZI>());
+  pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_surf_in(new pcl::PointCloud<pcl::PointXYZI>());
+  pcl::fromROSMsg(*msg_pair.first, *pointcloud_edge_in);
+  pcl::fromROSMsg(*msg_pair.second, *pointcloud_surf_in);
+
+  if (is_odom_inited_ == false) {
+    odom_estimation_.init_map_with_points(pointcloud_edge_in, pointcloud_surf_in);
+    is_odom_inited_ = true;
+    RCLCPP_INFO(get_logger(), "odom inited");
+  } else {
+    auto start = std::chrono::system_clock::now();
+    odom_estimation_.update_points_to_map(pointcloud_edge_in, pointcloud_surf_in);
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<float> elapsed_seconds = end - start;
+    total_frame_++;
+    total_time_ += elapsed_seconds.count() * 1000;
+    RCLCPP_INFO(get_logger(), "average odom estimation time %f ms", total_time_/total_frame_);
+  }
+}
+
+void OdomEstimation::publish_odom_result(const rclcpp::Time& pointcloud_time)
+{
+  Eigen::Quaterniond q_current(odom_estimation_.odom.rotation());
+  Eigen::Vector3d t_current = odom_estimation_.odom.translation();
+
+  // publish TF
+  geometry_msgs::msg::TransformStamped t;
+  t.header.stamp = pointcloud_time;
+  t.header.frame_id = "map";
+  t.child_frame_id = "base_link";
+  t.transform.translation.x = t_current.x();
+  t.transform.translation.y = t_current.y();
+  t.transform.translation.z = t_current.z();
+  tf2::Quaternion q(q_current.x(), q_current.y(), q_current.z(), q_current.w());
+  t.transform.rotation.x = q.x();
+  t.transform.rotation.y = q.y();
+  t.transform.rotation.z = q.z();
+  t.transform.rotation.w = q.w();
+  br_->sendTransform(t);
+
+  // publish odometry
+  nav_msgs::msg::Odometry laser_odometry;
+  laser_odometry.header.frame_id = "map";
+  laser_odometry.child_frame_id = "base_link";
+  laser_odometry.header.stamp = pointcloud_time;
+  laser_odometry.pose.pose.orientation.x = q_current.x();
+  laser_odometry.pose.pose.orientation.y = q_current.y();
+  laser_odometry.pose.pose.orientation.z = q_current.z();
+  laser_odometry.pose.pose.orientation.w = q_current.w();
+  laser_odometry.pose.pose.position.x = t_current.x();
+  laser_odometry.pose.pose.position.y = t_current.y();
+  laser_odometry.pose.pose.position.z = t_current.z();
+  pub_laser_odometry_->publish(laser_odometry);
+
+  // publish path
+  geometry_msgs::msg::PoseStamped laser_pose;
+  laser_pose.header = laser_odometry.header;
+  laser_pose.pose = laser_odometry.pose.pose;
+  laser_path_.header = laser_odometry.header;
+  laser_path_.poses.push_back(laser_pose);
+  pub_laser_path_->publish(laser_path_);
 }
 
 } // namespace floam

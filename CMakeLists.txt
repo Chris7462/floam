@@ -15,6 +15,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(message_filters REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -69,6 +70,7 @@ ament_target_dependencies(odom_estimation_node
   geometry_msgs
   tf2
   tf2_ros
+  message_filters
   pcl_conversions
 )
 
