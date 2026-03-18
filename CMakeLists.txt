@@ -14,13 +14,9 @@ find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(tf2_geometry_msgs REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(PCL REQUIRED)
-find_package(Eigen3 REQUIRED)
-find_package(Sophus REQUIRED)
-find_package(g2o REQUIRED)
 find_package(floam_core REQUIRED)
 
 # lidar_processing_node
@@ -35,10 +31,12 @@ ament_target_dependencies(lidar_processing_node
   pcl_conversions
 )
 
-target_include_directories(lidar_processing_node PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-  ${PCL_INCLUDE_DIRS}
+target_include_directories(lidar_processing_node
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  PRIVATE
+    ${PCL_INCLUDE_DIRS}
 )
 
 target_link_libraries(lidar_processing_node
@@ -74,10 +72,12 @@ ament_target_dependencies(odom_estimation_node
   pcl_conversions
 )
 
-target_include_directories(odom_estimation_node PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-  ${PCL_INCLUDE_DIRS}
+target_include_directories(odom_estimation_node
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  PRIVATE
+    ${PCL_INCLUDE_DIRS}
 )
 
 target_link_libraries(odom_estimation_node
@@ -107,15 +107,14 @@ ament_target_dependencies(lidar_mapping_node
   sensor_msgs
   nav_msgs
   pcl_conversions
-  tf2
-  tf2_ros
-  tf2_geometry_msgs
 )
 
-target_include_directories(lidar_mapping_node PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-  ${PCL_INCLUDE_DIRS}
+target_include_directories(lidar_mapping_node
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  PRIVATE
+    ${PCL_INCLUDE_DIRS}
 )
 
 target_link_libraries(lidar_mapping_node

@@ -19,7 +19,7 @@ def generate_launch_description():
     )
 
     bag_exec = ExecuteProcess(
-        cmd=['ros2', 'bag', 'play', '-r', '0.85',
+        cmd=['ros2', 'bag', 'play',
              '/data/kitti/raw/2011_09_30_drive_0018_sync_bag',
              '--topics', '/kitti/velo', '/kitti/camera/color/left/image_raw',
              '--clock']

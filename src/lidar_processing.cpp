@@ -39,7 +39,7 @@ void LidarProcessing::initialize_parameters()
   max_processing_queue_size_ = static_cast<size_t>(declare_parameter<int>("max_processing_queue_size", 3));
   queue_size_ = declare_parameter<int>("queue_size", 10);
   input_topic_ = declare_parameter<std::string>("input_topic", "kitti/velo");
-  output_filtered_topic_ = declare_parameter<std::string>("output_filtered_topic", "velodyne_points_filtered");
+  output_filtered_topic_ = declare_parameter<std::string>("output_filtered_topic", "lidar_cloud_filtered");
   output_edge_topic_ = declare_parameter<std::string>("output_edge_topic", "laser_cloud_edge");
   output_surf_topic_ = declare_parameter<std::string>("output_surf_topic", "laser_cloud_surf");
 
