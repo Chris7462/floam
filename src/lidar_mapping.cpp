@@ -26,10 +26,10 @@ LidarMapping::LidarMapping()
   const double min_dist = declare_parameter<double>("min_dist", 2.0);
   const double map_resolution = declare_parameter<double>("map_resolution", 0.4);
 
-// set lidar parameters
+  // set lidar parameters
   lidar_param_.scan_period = scan_period;
   lidar_param_.vertical_angle = vertical_angle;
-  lidar_param_.num_lines = scan_line;
+  lidar_param_.num_scan_lines = scan_line;
   lidar_param_.max_distance = max_dist;
   lidar_param_.min_distance = min_dist;
 
@@ -58,14 +58,16 @@ void LidarMapping::lidar_mapping()
     if (!odometry_buf_.empty() && !point_cloud_buf_.empty()) {
       // read data
       mutex_lock_.lock();
-      if (!point_cloud_buf_.empty() && point_cloud_buf_.front()->header.stamp.sec < odometry_buf_.front()->header.stamp.sec - 0.5*lidar_param_.scan_period) {
+      if (!point_cloud_buf_.empty() &&
+        (rclcpp::Time(point_cloud_buf_.front()->header.stamp) < rclcpp::Time(odometry_buf_.front()->header.stamp) - rclcpp::Duration::from_seconds(0.5 * lidar_param_.scan_period))) {
         point_cloud_buf_.pop();
         RCLCPP_WARN(this->get_logger(), "time stamp unaligned error and pointcloud discarded, pls check your data --> lidar mapping node");
         mutex_lock_.unlock();
         continue;
       }
 
-      if (!odometry_buf_.empty() && odometry_buf_.front()->header.stamp.sec < point_cloud_buf_.front()->header.stamp.sec - 0.5*lidar_param_.scan_period) {
+      if (!odometry_buf_.empty() &&
+        (rclcpp::Time(odometry_buf_.front()->header.stamp) < rclcpp::Time(point_cloud_buf_.front()->header.stamp) - rclcpp::Duration::from_seconds(0.5 * lidar_param_.scan_period))) {
         odometry_buf_.pop();
         RCLCPP_WARN(this->get_logger(), "time stamp unaligned with path final, pls check your data --> lidar mapping node");
         mutex_lock_.unlock();

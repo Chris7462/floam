@@ -30,11 +30,11 @@ LidarProcessing::~LidarProcessing()
 void LidarProcessing::initialize_parameters()
 {
   // declare and load parameters
-  const int scan_line = declare_parameter<int>("scan_line", 64);
-  const double scan_period = declare_parameter<double>("scan_period", 0.1);
-  const double vertical_angle = declare_parameter<double>("vertical_angle", 2.0);
-  const double max_dist = declare_parameter<double>("max_dist", 90.0);
-  const double min_dist = declare_parameter<double>("min_dist", 2.0);
+  lidar_param_.scan_period = declare_parameter<double>("scan_period", 0.1);
+  lidar_param_.vertical_angle = declare_parameter<double>("vertical_angle", 2.0);
+  lidar_param_.num_scan_lines = declare_parameter<int>("num_scan_lines", 64);
+  lidar_param_.max_distance = declare_parameter<double>("max_dist", 90.0);
+  lidar_param_.min_distance = declare_parameter<double>("min_dist", 2.0);
   processing_frequency_ = declare_parameter<double>("processing_frequency", 50.0);
   max_processing_queue_size_ = static_cast<size_t>(declare_parameter<int>("max_processing_queue_size", 3));
   queue_size_ = declare_parameter<int>("queue_size", 10);
@@ -43,33 +43,18 @@ void LidarProcessing::initialize_parameters()
   output_edge_topic_ = declare_parameter<std::string>("output_edge_topic", "laser_cloud_edge");
   output_surf_topic_ = declare_parameter<std::string>("output_surf_topic", "laser_cloud_surf");
 
-  // validate parameters
+  // validate processing frequency to avoid division by zero in timer creation
   if (processing_frequency_ <= 0) {
     throw std::runtime_error("Invalid processing frequency: " + std::to_string(processing_frequency_));
   }
-  if (max_processing_queue_size_ == 0) {
-    throw std::runtime_error("Invalid max processing queue size: " + std::to_string(max_processing_queue_size_));
-  }
-  if (scan_line <= 0) {
-    throw std::runtime_error("Invalid scan line: " + std::to_string(scan_line));
-  }
-  if (max_dist <= min_dist) {
-    throw std::runtime_error("max_dist must be greater than min_dist");
-  }
-
-  // set lidar parameters
-  lidar_param_.scan_period = scan_period;
-  lidar_param_.vertical_angle = vertical_angle;
-  lidar_param_.num_lines = scan_line;
-  lidar_param_.max_distance = max_dist;
-  lidar_param_.min_distance = min_dist;
 
   lidar_processing_.init(lidar_param_);
 
   RCLCPP_INFO(get_logger(),
-    "Parameters initialized - scan_line: %d, scan_period: %.2f, max_dist: %.1f, min_dist: %.1f, "
+    "Parameters initialized - num_scan_lines: %d, scan_period: %.2f, max_dist: %.1f, min_dist: %.1f, "
     "processing_frequency: %.1f Hz, max_processing_queue_size: %zu",
-    scan_line, scan_period, max_dist, min_dist, processing_frequency_, max_processing_queue_size_);
+    lidar_param_.num_scan_lines, lidar_param_.scan_period, lidar_param_.max_distance,
+    lidar_param_.min_distance, processing_frequency_, max_processing_queue_size_);
 }
 
 void LidarProcessing::initialize_ros_components()

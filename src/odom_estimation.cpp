@@ -22,22 +22,38 @@ namespace floam
 OdomEstimation::OdomEstimation()
   : Node("odom_estimation_node"), laser_path_{}, is_odom_inited_(false), total_time_(0.0), total_frame_(0)
 {
-  const int scan_line = declare_parameter<int>("scan_line", 64);
-  const double scan_period = declare_parameter<double>("scan_period", 0.1);
-  const double vertical_angle = declare_parameter<double>("vertical_angle", 2.0);
-  const double max_dist = declare_parameter<double>("max_dist", 90.0);
-  const double min_dist = declare_parameter<double>("min_dist", 2.0);
-  const double map_resolution = declare_parameter<double>("map_resolution", 0.4);
+  initialize_parameters();
+  initialize_ros_components();
 
-// set lidar parameters
-  lidar_param_.scan_period = scan_period;
-  lidar_param_.vertical_angle = vertical_angle;
-  lidar_param_.num_lines = scan_line;
-  lidar_param_.max_distance = max_dist;
-  lidar_param_.min_distance = min_dist;
+  RCLCPP_INFO(get_logger(), "Odom estimation node initialized successfully");
+}
+
+OdomEstimation::~OdomEstimation()
+{
+  RCLCPP_INFO(get_logger(), "Odom estimation node shutting down");
+}
+
+void OdomEstimation::initialize_parameters()
+{
+  // declare and load parameters directly into lidar_param_
+  lidar_param_.scan_period = declare_parameter<double>("scan_period", 0.1);
+  lidar_param_.vertical_angle = declare_parameter<double>("vertical_angle", 2.0);
+  lidar_param_.num_scan_lines = declare_parameter<int>("num_scan_lines", 64);
+  lidar_param_.max_distance = declare_parameter<double>("max_dist", 90.0);
+  lidar_param_.min_distance = declare_parameter<double>("min_dist", 2.0);
+  const double map_resolution = declare_parameter<double>("map_resolution", 0.4);
 
   odom_estimation_.init(map_resolution);
 
+  RCLCPP_INFO(get_logger(),
+    "Parameters initialized - num_scan_lines: %d, scan_period: %.2f, max_dist: %.1f, min_dist: %.1f, "
+    "map_resolution: %.2f",
+    lidar_param_.num_scan_lines, lidar_param_.scan_period, lidar_param_.max_distance,
+    lidar_param_.min_distance, map_resolution);
+}
+
+void OdomEstimation::initialize_ros_components()
+{
   // configure QoS profile for lidar point cloud transport
   rclcpp::QoS lidar_qos(10);
   lidar_qos.reliability(rclcpp::ReliabilityPolicy::Reliable);
@@ -56,6 +72,8 @@ OdomEstimation::OdomEstimation()
   pub_laser_path_ = this->create_publisher<nav_msgs::msg::Path>("odom_path", lidar_qos);
 
   br_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+
+  RCLCPP_INFO(get_logger(), "ROS components initialized");
 }
 
 void OdomEstimation::odom_estimation()

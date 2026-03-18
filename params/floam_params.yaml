@@ -1,7 +1,7 @@
 lidar_processing_node:
   ros__parameters:
     # Lidar parameters
-    scan_line: 64
+    num_scan_lines: 64
     scan_period: 0.1  # seconds
     vertical_angle: 2.0  # degrees
     max_dist: 90.0  # meters
@@ -20,7 +20,7 @@ lidar_processing_node:
 odom_estimation_node:
   ros__parameters:
     # Lidar parameters
-    scan_line: 64
+    num_scan_lines: 64
     scan_period: 0.1  # seconds
     vertical_angle: 2.0  # degrees
     max_dist: 90.0  # meters
@@ -31,7 +31,7 @@ odom_estimation_node:
 lidar_mapping_node:
   ros__parameters:
     # Lidar parameters
-    scan_line: 64
+    num_scan_lines: 64
     scan_period: 0.1  # seconds
     vertical_angle: 2.0  # degrees
     max_dist: 90.0  # meters
