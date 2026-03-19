@@ -1,5 +1,6 @@
 // ros header
 #include <pcl_conversions/pcl_conversions.h>
+#include <tf2_eigen/tf2_eigen.hpp>
 
 // c++ header
 #include <chrono>
@@ -135,10 +136,16 @@ void LidarMapping::timer_callback()
 
   processing_in_progress_.store(true);
 
+  pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_in(new pcl::PointCloud<pcl::PointXYZI>());
+  pcl::fromROSMsg(*msg_pair.first, *pointcloud_in);
+
+  Eigen::Isometry3d current_pose;
+  tf2::fromMsg(msg_pair.second->pose.pose, current_pose);
+
   rclcpp::Time pointcloud_time = msg_pair.first->header.stamp;
 
   try {
-    process_mapping(msg_pair);
+    lidar_mapping_.update_current_points_to_map(pointcloud_in, current_pose);
 
     if (pub_map_->get_subscription_count() > 0) {
       publish_mapping_result(pointcloud_time);
@@ -148,25 +155,6 @@ void LidarMapping::timer_callback()
   }
 
   processing_in_progress_.store(false);
-}
-
-void LidarMapping::process_mapping(const CloudOdomPair& msg_pair)
-{
-  pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_in(new pcl::PointCloud<pcl::PointXYZI>());
-  pcl::fromROSMsg(*msg_pair.first, *pointcloud_in);
-
-  Eigen::Isometry3d current_pose = Eigen::Isometry3d::Identity();
-  current_pose.rotate(Eigen::Quaterniond(
-    msg_pair.second->pose.pose.orientation.w,
-    msg_pair.second->pose.pose.orientation.x,
-    msg_pair.second->pose.pose.orientation.y,
-    msg_pair.second->pose.pose.orientation.z));
-  current_pose.pretranslate(Eigen::Vector3d(
-    msg_pair.second->pose.pose.position.x,
-    msg_pair.second->pose.pose.position.y,
-    msg_pair.second->pose.pose.position.z));
-
-  lidar_mapping_.update_current_points_to_map(pointcloud_in, current_pose);
 }
 
 void LidarMapping::publish_mapping_result(const rclcpp::Time& pointcloud_time)

@@ -10,6 +10,13 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/exact_time.h>
 
+// pcl header
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
+// eigen header
+#include <Eigen/Geometry>
+
 // c++ header
 #include <atomic>
 #include <mutex>
@@ -67,12 +74,6 @@ private:
    * @brief Timer callback for processing at regular intervals
    */
   void timer_callback();
-
-  /**
-   * @brief Process lidar mapping from buffered point cloud and odometry pair
-   * @param msg_pair Synchronized pair of point cloud and odometry messages
-   */
-  void process_mapping(const CloudOdomPair& msg_pair);
 
   /**
    * @brief Publish mapping results

@@ -1,6 +1,6 @@
 // ros header
-#include <tf2/LinearMath/Quaternion.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <tf2_eigen/tf2_eigen.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
@@ -144,10 +144,14 @@ void OdomEstimation::timer_callback()
 
   processing_in_progress_.store(true);
 
+  pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_edge_in(new pcl::PointCloud<pcl::PointXYZI>());
+  pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_surf_in(new pcl::PointCloud<pcl::PointXYZI>());
+  pcl::fromROSMsg(*msg_pair.first, *pointcloud_edge_in);
+  pcl::fromROSMsg(*msg_pair.second, *pointcloud_surf_in);
   rclcpp::Time pointcloud_time = msg_pair.first->header.stamp;
 
   try {
-    process_odom(msg_pair);
+    process_odom(pointcloud_edge_in, pointcloud_surf_in);
 
     if (pub_laser_odometry_->get_subscription_count() > 0 ||
         pub_laser_path_->get_subscription_count() > 0) {
@@ -160,13 +164,10 @@ void OdomEstimation::timer_callback()
   processing_in_progress_.store(false);
 }
 
-void OdomEstimation::process_odom(const PointCloudPair & msg_pair)
+void OdomEstimation::process_odom(
+  const pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_edge_in,
+  const pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_surf_in)
 {
-  pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_edge_in(new pcl::PointCloud<pcl::PointXYZI>());
-  pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_surf_in(new pcl::PointCloud<pcl::PointXYZI>());
-  pcl::fromROSMsg(*msg_pair.first, *pointcloud_edge_in);
-  pcl::fromROSMsg(*msg_pair.second, *pointcloud_surf_in);
-
   if (is_odom_inited_ == false) {
     odom_estimation_.init_map_with_points(pointcloud_edge_in, pointcloud_surf_in);
     is_odom_inited_ = true;
@@ -178,42 +179,25 @@ void OdomEstimation::process_odom(const PointCloudPair & msg_pair)
     std::chrono::duration<float> elapsed_seconds = end - start;
     total_frame_++;
     total_time_ += elapsed_seconds.count() * 1000;
-    RCLCPP_INFO(get_logger(), "average odom estimation time %f ms", total_time_/total_frame_);
+    RCLCPP_INFO(get_logger(), "average odom estimation time %f ms", total_time_ / total_frame_);
   }
 }
 
 void OdomEstimation::publish_odom_result(const rclcpp::Time& pointcloud_time)
 {
-  Eigen::Quaterniond q_current(odom_estimation_.odom.rotation());
-  Eigen::Vector3d t_current = odom_estimation_.odom.translation();
-
   // publish TF
-  geometry_msgs::msg::TransformStamped t;
+  geometry_msgs::msg::TransformStamped t = tf2::eigenToTransform(odom_estimation_.odom);
   t.header.stamp = pointcloud_time;
   t.header.frame_id = "map";
   t.child_frame_id = "base_link";
-  t.transform.translation.x = t_current.x();
-  t.transform.translation.y = t_current.y();
-  t.transform.translation.z = t_current.z();
-  tf2::Quaternion q(q_current.x(), q_current.y(), q_current.z(), q_current.w());
-  t.transform.rotation.x = q.x();
-  t.transform.rotation.y = q.y();
-  t.transform.rotation.z = q.z();
-  t.transform.rotation.w = q.w();
   br_->sendTransform(t);
 
   // publish odometry
   nav_msgs::msg::Odometry laser_odometry;
+  laser_odometry.header.stamp = pointcloud_time;
   laser_odometry.header.frame_id = "map";
   laser_odometry.child_frame_id = "base_link";
-  laser_odometry.header.stamp = pointcloud_time;
-  laser_odometry.pose.pose.orientation.x = q_current.x();
-  laser_odometry.pose.pose.orientation.y = q_current.y();
-  laser_odometry.pose.pose.orientation.z = q_current.z();
-  laser_odometry.pose.pose.orientation.w = q_current.w();
-  laser_odometry.pose.pose.position.x = t_current.x();
-  laser_odometry.pose.pose.position.y = t_current.y();
-  laser_odometry.pose.pose.position.z = t_current.z();
+  laser_odometry.pose.pose = tf2::toMsg(odom_estimation_.odom);
   pub_laser_odometry_->publish(laser_odometry);
 
   // publish path

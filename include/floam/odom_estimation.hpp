@@ -12,6 +12,10 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/exact_time.h>
 
+// pcl header
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
 // c++ header
 #include <atomic>
 #include <mutex>
@@ -71,10 +75,13 @@ private:
   void timer_callback();
 
   /**
-   * @brief Process odometry estimation from a synchronized point cloud pair
-   * @param msg_pair Synchronized pair of edge and surf point cloud messages
+   * @brief Process odometry estimation from converted PCL point clouds
+   * @param pointcloud_edge_in Edge point cloud in PCL format
+   * @param pointcloud_surf_in Surf point cloud in PCL format
    */
-  void process_odom(const PointCloudPair & msg_pair);
+  void process_odom(
+    const pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_edge_in,
+    const pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_surf_in);
 
   /**
    * @brief Publish odometry results
