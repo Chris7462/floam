@@ -42,8 +42,20 @@ def generate_launch_description():
         ]
     )
 
+    lidar_mapping_node = Node(
+        package='floam',
+        executable='lidar_mapping_node',
+        name='lidar_mapping_node',
+        output='screen',
+        parameters=[
+            params,
+            {'use_sim_time': LaunchConfiguration('use_sim_time')}
+        ]
+    )
+
     return LaunchDescription([
         declare_use_sim_time,
         lidar_processing_node,
-        odom_estimation_node
+        odom_estimation_node,
+        lidar_mapping_node
     ])

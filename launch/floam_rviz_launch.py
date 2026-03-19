@@ -25,7 +25,7 @@ def generate_launch_description():
              '--clock']
     )
 
-    floam_launch = IncludeLaunchDescription(
+    floam_mapping_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([
                 FindPackageShare('floam'), 'launch',
@@ -48,7 +48,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         declare_use_sim_time,
-        floam_launch,
+        floam_mapping_launch,
         rviz_node,
         TimerAction(
             period=3.0,
