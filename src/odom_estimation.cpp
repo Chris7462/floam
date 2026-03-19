@@ -179,7 +179,7 @@ void OdomEstimation::process_odom(
     std::chrono::duration<float> elapsed_seconds = end - start;
     total_frame_++;
     total_time_ += elapsed_seconds.count() * 1000;
-    RCLCPP_INFO(get_logger(), "average odom estimation time %f ms", total_time_ / total_frame_);
+    // RCLCPP_INFO(get_logger(), "average odom estimation time %f ms", total_time_ / total_frame_);
   }
 }
 
