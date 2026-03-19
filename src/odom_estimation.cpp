@@ -21,7 +21,7 @@ namespace floam
 {
 
 OdomEstimation::OdomEstimation()
-  : Node("odom_estimation_node"), laser_path_{}, processing_in_progress_(false),
+  : Node("odom_estimation_node"), lidar_path_{}, processing_in_progress_(false),
     is_odom_inited_(false), total_time_(0.0), total_frame_(0)
 {
   initialize_parameters();
@@ -47,8 +47,8 @@ void OdomEstimation::initialize_parameters()
   queue_size_ = declare_parameter<int>("queue_size", 10);
   max_processing_queue_size_ = static_cast<size_t>(declare_parameter<int>("max_processing_queue_size", 3));
   processing_frequency_ = declare_parameter<double>("processing_frequency", 50.0);
-  input_edge_topic_ = declare_parameter<std::string>("input_edge_topic", "laser_cloud_edge");
-  input_surf_topic_ = declare_parameter<std::string>("input_surf_topic", "laser_cloud_surf");
+  input_edge_topic_ = declare_parameter<std::string>("input_edge_topic", "lidar_cloud_edge");
+  input_surf_topic_ = declare_parameter<std::string>("input_surf_topic", "lidar_cloud_surf");
   output_odom_topic_ = declare_parameter<std::string>("output_odom_topic", "odom");
   output_path_topic_ = declare_parameter<std::string>("output_path_topic", "odom_path");
 
@@ -87,8 +87,8 @@ void OdomEstimation::initialize_ros_components()
   sync_->registerCallback(
     std::bind(&OdomEstimation::lidar_callback, this, std::placeholders::_1, std::placeholders::_2));
 
-  pub_laser_odometry_ = this->create_publisher<nav_msgs::msg::Odometry>(output_odom_topic_, lidar_qos);
-  pub_laser_path_ = this->create_publisher<nav_msgs::msg::Path>(output_path_topic_, lidar_qos);
+  pub_lidar_odometry_ = this->create_publisher<nav_msgs::msg::Odometry>(output_odom_topic_, lidar_qos);
+  pub_lidar_path_ = this->create_publisher<nav_msgs::msg::Path>(output_path_topic_, lidar_qos);
 
   br_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
@@ -153,8 +153,8 @@ void OdomEstimation::timer_callback()
   try {
     process_odom(pointcloud_edge_in, pointcloud_surf_in);
 
-    if (pub_laser_odometry_->get_subscription_count() > 0 ||
-        pub_laser_path_->get_subscription_count() > 0) {
+    if (pub_lidar_odometry_->get_subscription_count() > 0 ||
+        pub_lidar_path_->get_subscription_count() > 0) {
       publish_odom_result(pointcloud_time);
     }
   } catch (const std::exception & e) {
@@ -193,20 +193,20 @@ void OdomEstimation::publish_odom_result(const rclcpp::Time& pointcloud_time)
   br_->sendTransform(t);
 
   // publish odometry
-  nav_msgs::msg::Odometry laser_odometry;
-  laser_odometry.header.stamp = pointcloud_time;
-  laser_odometry.header.frame_id = "map";
-  laser_odometry.child_frame_id = "base_link";
-  laser_odometry.pose.pose = tf2::toMsg(odom_estimation_.odom);
-  pub_laser_odometry_->publish(laser_odometry);
+  nav_msgs::msg::Odometry lidar_odometry;
+  lidar_odometry.header.stamp = pointcloud_time;
+  lidar_odometry.header.frame_id = "map";
+  lidar_odometry.child_frame_id = "base_link";
+  lidar_odometry.pose.pose = tf2::toMsg(odom_estimation_.odom);
+  pub_lidar_odometry_->publish(lidar_odometry);
 
   // publish path
-  geometry_msgs::msg::PoseStamped laser_pose;
-  laser_pose.header = laser_odometry.header;
-  laser_pose.pose = laser_odometry.pose.pose;
-  laser_path_.header = laser_odometry.header;
-  laser_path_.poses.push_back(laser_pose);
-  pub_laser_path_->publish(laser_path_);
+  geometry_msgs::msg::PoseStamped lidar_pose;
+  lidar_pose.header = lidar_odometry.header;
+  lidar_pose.pose = lidar_odometry.pose.pose;
+  lidar_path_.header = lidar_odometry.header;
+  lidar_path_.poses.push_back(lidar_pose);
+  pub_lidar_path_->publish(lidar_path_);
 }
 
 } // namespace floam

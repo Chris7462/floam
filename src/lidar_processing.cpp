@@ -41,8 +41,8 @@ void LidarProcessing::initialize_parameters()
   queue_size_ = declare_parameter<int>("queue_size", 10);
   input_topic_ = declare_parameter<std::string>("input_topic", "kitti/velo");
   output_filtered_topic_ = declare_parameter<std::string>("output_filtered_topic", "lidar_cloud_filtered");
-  output_edge_topic_ = declare_parameter<std::string>("output_edge_topic", "laser_cloud_edge");
-  output_surf_topic_ = declare_parameter<std::string>("output_surf_topic", "laser_cloud_surf");
+  output_edge_topic_ = declare_parameter<std::string>("output_edge_topic", "lidar_cloud_edge");
+  output_surf_topic_ = declare_parameter<std::string>("output_surf_topic", "lidar_cloud_surf");
 
   // validate processing frequency to avoid division by zero in timer creation
   if (processing_frequency_ <= 0) {

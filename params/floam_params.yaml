@@ -14,8 +14,8 @@ lidar_processing_node:
     # Topic parameters
     input_topic: "kitti/velo"
     output_filtered_topic: "lidar_cloud_filtered"
-    output_edge_topic: "laser_cloud_edge"
-    output_surf_topic: "laser_cloud_surf"
+    output_edge_topic: "lidar_cloud_edge"
+    output_surf_topic: "lidar_cloud_surf"
 
 odom_estimation_node:
   ros__parameters:
@@ -33,8 +33,8 @@ odom_estimation_node:
     # QoS parameters
     queue_size: 10
     # Topic parameters
-    input_edge_topic: "laser_cloud_edge"
-    input_surf_topic: "laser_cloud_surf"
+    input_edge_topic: "lidar_cloud_edge"
+    input_surf_topic: "lidar_cloud_surf"
     output_odom_topic: "odom"
     output_path_topic: "odom_path"
 

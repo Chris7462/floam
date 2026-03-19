@@ -95,8 +95,8 @@ private:
   message_filters::Subscriber<sensor_msgs::msg::PointCloud2> sub_surf_lidar_cloud_;
   std::shared_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
 
-  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_laser_odometry_;
-  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_laser_path_;
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_lidar_odometry_;
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_lidar_path_;
 
   rclcpp::TimerBase::SharedPtr timer_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> br_;
@@ -113,7 +113,7 @@ private:
   std::mutex mutex_lock_;
 
   // Path
-  nav_msgs::msg::Path laser_path_;
+  nav_msgs::msg::Path lidar_path_;
 
   // Parameters
   std::string input_edge_topic_;
