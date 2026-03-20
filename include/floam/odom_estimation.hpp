@@ -66,7 +66,8 @@ private:
    * @param edge_msg Incoming edge point cloud message
    * @param surf_msg Incoming surf point cloud message
    */
-  void lidar_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr edge_msg,
+  void lidar_callback(
+    const sensor_msgs::msg::PointCloud2::ConstSharedPtr edge_msg,
     const sensor_msgs::msg::PointCloud2::ConstSharedPtr surf_msg);
 
   /**
@@ -87,7 +88,7 @@ private:
    * @brief Publish odometry results
    * @param pointcloud_time Timestamp of the point cloud
    */
-  void publish_odom_result(const rclcpp::Time& pointcloud_time);
+  void publish_odom_result(const rclcpp::Time & pointcloud_time);
 
 private:
   // ROS2 components
@@ -131,4 +132,4 @@ private:
   int total_frame_;
 };
 
-} // namespace floam
+}  // namespace floam

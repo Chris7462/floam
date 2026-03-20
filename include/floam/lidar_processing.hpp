@@ -59,7 +59,8 @@ private:
    * @param pointcloud_edge Output edge feature point cloud
    * @param pointcloud_surf Output surface feature point cloud
    */
-  void process_lidar(const pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_in,
+  void process_lidar(
+    const pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_in,
     pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_edge,
     pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_surf);
 
@@ -110,4 +111,4 @@ private:
   int total_frame_;
 };
 
-} // namespace floam
+}  // namespace floam

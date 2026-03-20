@@ -19,7 +19,7 @@ namespace floam
 {
 
 LidarMapping::LidarMapping()
-  : Node("lidar_mapping_node"), processing_in_progress_(false)
+: Node("lidar_mapping_node"), processing_in_progress_(false)
 {
   initialize_parameters();
   initialize_ros_components();
@@ -42,7 +42,8 @@ void LidarMapping::initialize_parameters()
   lidar_param_.min_distance = declare_parameter<double>("min_dist", 2.0);
   const double map_resolution = declare_parameter<double>("map_resolution", 0.4);
   queue_size_ = declare_parameter<int>("queue_size", 10);
-  max_processing_queue_size_ = static_cast<size_t>(declare_parameter<int>("max_processing_queue_size", 3));
+  max_processing_queue_size_ =
+    static_cast<size_t>(declare_parameter<int>("max_processing_queue_size", 3));
   processing_frequency_ = declare_parameter<double>("processing_frequency", 50.0);
   input_cloud_topic_ = declare_parameter<std::string>("input_cloud_topic", "lidar_cloud_filtered");
   input_odom_topic_ = declare_parameter<std::string>("input_odom_topic", "odom");
@@ -50,7 +51,8 @@ void LidarMapping::initialize_parameters()
 
   // validate processing frequency to avoid division by zero in timer creation
   if (processing_frequency_ <= 0) {
-    throw std::runtime_error("Invalid processing frequency: " + std::to_string(processing_frequency_));
+    throw std::runtime_error("Invalid processing frequency: " +
+      std::to_string(processing_frequency_));
   }
 
   lidar_mapping_.init(map_resolution);
@@ -81,7 +83,8 @@ void LidarMapping::initialize_ros_components()
   sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(
     SyncPolicy(queue_size_), sub_lidar_cloud_, sub_odometry_);
   sync_->registerCallback(
-    std::bind(&LidarMapping::lidar_odom_callback, this, std::placeholders::_1, std::placeholders::_2));
+    std::bind(&LidarMapping::lidar_odom_callback, this, std::placeholders::_1,
+      std::placeholders::_2));
 
   pub_map_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(output_map_topic_, lidar_qos);
 
@@ -96,7 +99,8 @@ void LidarMapping::initialize_ros_components()
     input_cloud_topic_.c_str(), input_odom_topic_.c_str(), output_map_topic_.c_str());
 }
 
-void LidarMapping::lidar_odom_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr cloud_msg,
+void LidarMapping::lidar_odom_callback(
+  const sensor_msgs::msg::PointCloud2::ConstSharedPtr cloud_msg,
   const nav_msgs::msg::Odometry::ConstSharedPtr odom_msg)
 {
   try {
@@ -157,7 +161,7 @@ void LidarMapping::timer_callback()
   processing_in_progress_.store(false);
 }
 
-void LidarMapping::publish_mapping_result(const rclcpp::Time& pointcloud_time)
+void LidarMapping::publish_mapping_result(const rclcpp::Time & pointcloud_time)
 {
   pcl::PointCloud<pcl::PointXYZI>::Ptr pc_map = lidar_mapping_.get_map();
   sensor_msgs::msg::PointCloud2 points_msg;
@@ -167,4 +171,4 @@ void LidarMapping::publish_mapping_result(const rclcpp::Time& pointcloud_time)
   pub_map_->publish(points_msg);
 }
 
-} // namespace floam
+}  // namespace floam

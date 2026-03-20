@@ -21,8 +21,8 @@ namespace floam
 {
 
 OdomEstimation::OdomEstimation()
-  : Node("odom_estimation_node"), lidar_path_{}, processing_in_progress_(false),
-    is_odom_inited_(false), total_time_(0.0), total_frame_(0)
+: Node("odom_estimation_node"), lidar_path_{}, processing_in_progress_(false),
+  is_odom_inited_(false), total_time_(0.0), total_frame_(0)
 {
   initialize_parameters();
   initialize_ros_components();
@@ -45,7 +45,8 @@ void OdomEstimation::initialize_parameters()
   lidar_param_.min_distance = declare_parameter<double>("min_dist", 2.0);
   const double map_resolution = declare_parameter<double>("map_resolution", 0.4);
   queue_size_ = declare_parameter<int>("queue_size", 10);
-  max_processing_queue_size_ = static_cast<size_t>(declare_parameter<int>("max_processing_queue_size", 3));
+  max_processing_queue_size_ =
+    static_cast<size_t>(declare_parameter<int>("max_processing_queue_size", 3));
   processing_frequency_ = declare_parameter<double>("processing_frequency", 50.0);
   input_edge_topic_ = declare_parameter<std::string>("input_edge_topic", "lidar_cloud_edge");
   input_surf_topic_ = declare_parameter<std::string>("input_surf_topic", "lidar_cloud_surf");
@@ -54,7 +55,8 @@ void OdomEstimation::initialize_parameters()
 
   // validate processing frequency to avoid division by zero in timer creation
   if (processing_frequency_ <= 0) {
-    throw std::runtime_error("Invalid processing frequency: " + std::to_string(processing_frequency_));
+    throw std::runtime_error("Invalid processing frequency: " +
+      std::to_string(processing_frequency_));
   }
 
   odom_estimation_.init(map_resolution);
@@ -85,9 +87,11 @@ void OdomEstimation::initialize_ros_components()
   sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(
     SyncPolicy(queue_size_), sub_edge_lidar_cloud_, sub_surf_lidar_cloud_);
   sync_->registerCallback(
-    std::bind(&OdomEstimation::lidar_callback, this, std::placeholders::_1, std::placeholders::_2));
+    std::bind(&OdomEstimation::lidar_callback, this, std::placeholders::_1,
+      std::placeholders::_2));
 
-  pub_lidar_odometry_ = this->create_publisher<nav_msgs::msg::Odometry>(output_odom_topic_, lidar_qos);
+  pub_lidar_odometry_ = this->create_publisher<nav_msgs::msg::Odometry>(
+      output_odom_topic_, lidar_qos);
   pub_lidar_path_ = this->create_publisher<nav_msgs::msg::Path>(output_path_topic_, lidar_qos);
 
   br_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -104,7 +108,8 @@ void OdomEstimation::initialize_ros_components()
     output_odom_topic_.c_str(), output_path_topic_.c_str());
 }
 
-void OdomEstimation::lidar_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr edge_msg,
+void OdomEstimation::lidar_callback(
+  const sensor_msgs::msg::PointCloud2::ConstSharedPtr edge_msg,
   const sensor_msgs::msg::PointCloud2::ConstSharedPtr surf_msg)
 {
   try {
@@ -154,7 +159,8 @@ void OdomEstimation::timer_callback()
     process_odom(pointcloud_edge_in, pointcloud_surf_in);
 
     if (pub_lidar_odometry_->get_subscription_count() > 0 ||
-        pub_lidar_path_->get_subscription_count() > 0) {
+      pub_lidar_path_->get_subscription_count() > 0)
+    {
       publish_odom_result(pointcloud_time);
     }
   } catch (const std::exception & e) {
@@ -183,10 +189,10 @@ void OdomEstimation::process_odom(
   }
 }
 
-void OdomEstimation::publish_odom_result(const rclcpp::Time& pointcloud_time)
+void OdomEstimation::publish_odom_result(const rclcpp::Time & pointcloud_time)
 {
   // publish TF
-  geometry_msgs::msg::TransformStamped t = tf2::eigenToTransform(odom_estimation_.odom);
+  geometry_msgs::msg::TransformStamped t = tf2::eigenToTransform(odom_estimation_.odom_);
   t.header.stamp = pointcloud_time;
   t.header.frame_id = "map";
   t.child_frame_id = "base_link";
@@ -197,7 +203,7 @@ void OdomEstimation::publish_odom_result(const rclcpp::Time& pointcloud_time)
   lidar_odometry.header.stamp = pointcloud_time;
   lidar_odometry.header.frame_id = "map";
   lidar_odometry.child_frame_id = "base_link";
-  lidar_odometry.pose.pose = tf2::toMsg(odom_estimation_.odom);
+  lidar_odometry.pose.pose = tf2::toMsg(odom_estimation_.odom_);
   pub_lidar_odometry_->publish(lidar_odometry);
 
   // publish path
@@ -209,4 +215,4 @@ void OdomEstimation::publish_odom_result(const rclcpp::Time& pointcloud_time)
   pub_lidar_path_->publish(lidar_path_);
 }
 
-} // namespace floam
+}  // namespace floam

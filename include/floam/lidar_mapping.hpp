@@ -67,7 +67,8 @@ private:
    * @param cloud_msg Incoming filtered point cloud message
    * @param odom_msg Incoming odometry message
    */
-  void lidar_odom_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr cloud_msg,
+  void lidar_odom_callback(
+    const sensor_msgs::msg::PointCloud2::ConstSharedPtr cloud_msg,
     const nav_msgs::msg::Odometry::ConstSharedPtr odom_msg);
 
   /**
@@ -79,7 +80,7 @@ private:
    * @brief Publish mapping results
    * @param pointcloud_time Timestamp of the point cloud
    */
-  void publish_mapping_result(const rclcpp::Time& pointcloud_time);
+  void publish_mapping_result(const rclcpp::Time & pointcloud_time);
 
 private:
   // ROS2 components
@@ -112,4 +113,4 @@ private:
   std::atomic<bool> processing_in_progress_;
 };
 
-} // namespace floam
+}  // namespace floam

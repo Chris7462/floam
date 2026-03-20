@@ -14,8 +14,8 @@ namespace floam
 {
 
 LidarProcessing::LidarProcessing()
-  : Node("lidar_processing_node"), processing_in_progress_(false),
-    total_time_(0.0), total_frame_(0)
+: Node("lidar_processing_node"), processing_in_progress_(false),
+  total_time_(0.0), total_frame_(0)
 {
   initialize_parameters();
   initialize_ros_components();
@@ -37,16 +37,19 @@ void LidarProcessing::initialize_parameters()
   lidar_param_.max_distance = declare_parameter<double>("max_dist", 90.0);
   lidar_param_.min_distance = declare_parameter<double>("min_dist", 2.0);
   processing_frequency_ = declare_parameter<double>("processing_frequency", 50.0);
-  max_processing_queue_size_ = static_cast<size_t>(declare_parameter<int>("max_processing_queue_size", 3));
+  max_processing_queue_size_ =
+    static_cast<size_t>(declare_parameter<int>("max_processing_queue_size", 3));
   queue_size_ = declare_parameter<int>("queue_size", 10);
   input_topic_ = declare_parameter<std::string>("input_topic", "kitti/velo");
-  output_filtered_topic_ = declare_parameter<std::string>("output_filtered_topic", "lidar_cloud_filtered");
+  output_filtered_topic_ = declare_parameter<std::string>("output_filtered_topic",
+      "lidar_cloud_filtered");
   output_edge_topic_ = declare_parameter<std::string>("output_edge_topic", "lidar_cloud_edge");
   output_surf_topic_ = declare_parameter<std::string>("output_surf_topic", "lidar_cloud_surf");
 
   // validate processing frequency to avoid division by zero in timer creation
   if (processing_frequency_ <= 0) {
-    throw std::runtime_error("Invalid processing frequency: " + std::to_string(processing_frequency_));
+    throw std::runtime_error("Invalid processing frequency: " +
+        std::to_string(processing_frequency_));
   }
 
   lidar_processing_.init(lidar_param_);
@@ -77,7 +80,8 @@ void LidarProcessing::initialize_ros_components()
     std::bind(&LidarProcessing::lidar_callback, this, std::placeholders::_1),
     sub_options);
 
-  filtered_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(output_filtered_topic_, lidar_qos);
+  filtered_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+    output_filtered_topic_, lidar_qos);
   edge_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(output_edge_topic_, lidar_qos);
   surf_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(output_surf_topic_, lidar_qos);
 
@@ -93,14 +97,16 @@ void LidarProcessing::initialize_ros_components()
     output_edge_topic_.c_str(), output_surf_topic_.c_str());
 }
 
-void LidarProcessing::lidar_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidar_cloud_msg)
+void LidarProcessing::lidar_callback(
+  const sensor_msgs::msg::PointCloud2::ConstSharedPtr lidar_cloud_msg)
 {
   try {
     std::lock_guard<std::mutex> lock(mutex_lock_);
 
     if (point_cloud_buf_.size() >= max_processing_queue_size_) {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
-        "Processing queue full, dropping oldest point cloud (queue size: %ld)", point_cloud_buf_.size());
+        "Processing queue full, dropping oldest point cloud (queue size: %ld)",
+          point_cloud_buf_.size());
       point_cloud_buf_.pop();
     }
 
@@ -143,8 +149,9 @@ void LidarProcessing::timer_callback()
 
     if (!pointcloud_edge->empty() || !pointcloud_surf->empty()) {
       if (edge_pub_->get_subscription_count() > 0 ||
-          surf_pub_->get_subscription_count() > 0 ||
-          filtered_pub_->get_subscription_count() > 0) {
+        surf_pub_->get_subscription_count() > 0 ||
+        filtered_pub_->get_subscription_count() > 0)
+      {
         publish_lidar_result(pointcloud_edge, pointcloud_surf, pointcloud_time);
       }
     } else {
@@ -157,7 +164,8 @@ void LidarProcessing::timer_callback()
   processing_in_progress_.store(false);
 }
 
-void LidarProcessing::process_lidar(const pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_in,
+void LidarProcessing::process_lidar(
+  const pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_in,
   pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_edge,
   pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_surf)
 {
@@ -198,4 +206,4 @@ void LidarProcessing::publish_lidar_result(
   surf_pub_->publish(surf_points_msg);
 }
 
-} // namespace floam
+}  // namespace floam

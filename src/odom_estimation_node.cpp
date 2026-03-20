@@ -8,7 +8,7 @@
 #include "floam/odom_estimation.hpp"
 
 
-int main(int argc, char* argv[])
+int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
 
