@@ -1,0 +1,82 @@
+# QoS override for offline KITTI bag playback.
+# Usage: ros2 bag play <bag> --qos-profile-overrides-path config/qos_override_offline.yaml
+#
+# All topics are set to reliable to ensure consistent playback rate (~10 Hz).
+# For live sensor deployment, no override is needed as sensors publish directly.
+
+# Camera images: reliable, depth 5
+/kitti/camera/gray/left/image_raw:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 5
+
+/kitti/camera/gray/right/image_raw:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 5
+
+/kitti/camera/color/left/image_raw:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 5
+
+/kitti/camera/color/right/image_raw:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 5
+
+# LiDAR: reliable, depth 5
+/kitti/velo:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 5
+
+# Camera info: reliable, depth 10
+/kitti/camera/gray/left/camera_info:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 10
+
+/kitti/camera/gray/right/camera_info:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 10
+
+/kitti/camera/color/left/camera_info:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 10
+
+/kitti/camera/color/right/camera_info:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 10
+
+# GPS / velocity: reliable, depth 10
+/kitti/oxts/gps/fix:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 10
+
+/kitti/oxts/gps/vel:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 10
+
+# IMU: reliable, depth 10
+/kitti/oxts/imu:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 10

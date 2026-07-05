@@ -2,7 +2,7 @@
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![ROS2](https://img.shields.io/badge/ROS2-Jazzy-blue)
+![ROS2](https://img.shields.io/badge/ROS2-Lyrical-blue)
 
 This package provides three `rclcpp` nodes that wrap the
 [`floam_core`](https://github.com/Chris7462/floam_core) pure C++ library,

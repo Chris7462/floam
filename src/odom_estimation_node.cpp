@@ -1,5 +1,6 @@
 // ros header
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp/executors/events_cbg_executor/events_cbg_executor.hpp>
 
 // c++ header
 #include <stdexcept>
@@ -15,7 +16,9 @@ int main(int argc, char * argv[])
   try {
     auto node = std::make_shared<floam::OdomEstimation>();
 
-    rclcpp::executors::MultiThreadedExecutor executor;
+    // EventsCBGExecutor: uses 10-15% less CPU than MultiThreadedExecutor,
+    // supports multiple ROS time sources, and manages threading internally.
+    rclcpp::executors::EventsCBGExecutor executor;
     executor.add_node(node);
     executor.spin();
   } catch (const std::exception & e) {

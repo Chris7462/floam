@@ -5,12 +5,11 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
-#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.hpp>
 
 // message filters header
-#include <message_filters/subscriber.h>
-#include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/exact_time.h>
+#include <message_filters/subscriber.hpp>
+#include <message_filters/time_synchronizer.hpp>
 
 // pcl header
 #include <pcl/point_cloud.h>
@@ -44,9 +43,6 @@ public:
 
 private:
   // type aliases for complex types
-  using SyncPolicy = message_filters::sync_policies::ExactTime<
-    sensor_msgs::msg::PointCloud2,
-    sensor_msgs::msg::PointCloud2>;
   using PointCloudPair = std::pair<
     sensor_msgs::msg::PointCloud2::ConstSharedPtr,
     sensor_msgs::msg::PointCloud2::ConstSharedPtr>;
@@ -94,7 +90,8 @@ private:
   // ROS2 components
   message_filters::Subscriber<sensor_msgs::msg::PointCloud2> sub_edge_lidar_cloud_;
   message_filters::Subscriber<sensor_msgs::msg::PointCloud2> sub_surf_lidar_cloud_;
-  std::shared_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
+  std::shared_ptr<message_filters::TimeSynchronizer<
+      sensor_msgs::msg::PointCloud2, sensor_msgs::msg::PointCloud2>> sync_;
 
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_lidar_odometry_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_lidar_path_;

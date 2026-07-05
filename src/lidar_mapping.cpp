@@ -5,6 +5,7 @@
 // c++ header
 #include <chrono>
 #include <functional>
+#include <optional>
 #include <stdexcept>
 
 // pcl header
@@ -68,20 +69,24 @@ void LidarMapping::initialize_ros_components()
 {
   // configure QoS profile for lidar point cloud transport
   rclcpp::QoS lidar_qos(queue_size_);
-  lidar_qos.reliability(rclcpp::ReliabilityPolicy::Reliable);
+  lidar_qos.reliability(rclcpp::ReliabilityPolicy::BestEffort);
   lidar_qos.durability(rclcpp::DurabilityPolicy::Volatile);
   lidar_qos.history(rclcpp::HistoryPolicy::KeepLast);
 
   // create reentrant callback group for parallel execution
   callback_group_ = create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
-  // create message filters subscribers
-  sub_lidar_cloud_.subscribe(this, input_cloud_topic_, lidar_qos.get_rmw_qos_profile());
-  sub_odometry_.subscribe(this, input_odom_topic_, lidar_qos.get_rmw_qos_profile());
+  // create message filter subscribers with dedicated callback group
+  rclcpp::SubscriptionOptions sub_options;
+  sub_options.callback_group = callback_group_;
+
+  sub_lidar_cloud_.subscribe(this, input_cloud_topic_, lidar_qos, sub_options);
+  sub_odometry_.subscribe(this, input_odom_topic_, lidar_qos, sub_options);
 
   // create exact time synchronizer
-  sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(
-    SyncPolicy(queue_size_), sub_lidar_cloud_, sub_odometry_);
+  sync_ = std::make_shared<message_filters::TimeSynchronizer<
+      sensor_msgs::msg::PointCloud2, nav_msgs::msg::Odometry>>(
+      queue_size_, sub_lidar_cloud_, sub_odometry_);
   sync_->registerCallback(
     std::bind(&LidarMapping::lidar_odom_callback, this, std::placeholders::_1,
       std::placeholders::_2));
@@ -122,31 +127,34 @@ void LidarMapping::lidar_odom_callback(
 
 void LidarMapping::timer_callback()
 {
-  // skip if already processing — lidar_mapping_ is not thread-safe
-  if (processing_in_progress_.load()) {
+  // Atomically claim the "processing" slot — lidar_mapping_ is not thread-safe
+  bool expected = false;
+  if (!processing_in_progress_.compare_exchange_strong(expected, true)) {
     return;
   }
 
-  CloudOdomPair msg_pair;
+  std::optional<CloudOdomPair> msg_pair;
 
   {
     std::lock_guard<std::mutex> lock(mutex_lock_);
-    if (cloud_odom_buf_.empty()) {
-      return;
+    if (!cloud_odom_buf_.empty()) {
+      msg_pair = cloud_odom_buf_.front();
+      cloud_odom_buf_.pop();
     }
-    msg_pair = cloud_odom_buf_.front();
-    cloud_odom_buf_.pop();
   }
 
-  processing_in_progress_.store(true);
+  if (!msg_pair.has_value()) {
+    processing_in_progress_.store(false);
+    return;
+  }
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_in(new pcl::PointCloud<pcl::PointXYZI>());
-  pcl::fromROSMsg(*msg_pair.first, *pointcloud_in);
+  pcl::fromROSMsg(*msg_pair->first, *pointcloud_in);
 
   Eigen::Isometry3d current_pose;
-  tf2::fromMsg(msg_pair.second->pose.pose, current_pose);
+  tf2::fromMsg(msg_pair->second->pose.pose, current_pose);
 
-  rclcpp::Time pointcloud_time = msg_pair.first->header.stamp;
+  rclcpp::Time pointcloud_time = msg_pair->first->header.stamp;
 
   try {
     lidar_mapping_.update_current_points_to_map(pointcloud_in, current_pose);

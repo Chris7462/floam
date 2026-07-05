@@ -65,7 +65,7 @@ void LidarProcessing::initialize_ros_components()
 {
   // configure QoS profile for lidar point cloud transport
   rclcpp::QoS lidar_qos(queue_size_);
-  lidar_qos.reliability(rclcpp::ReliabilityPolicy::Reliable);
+  lidar_qos.reliability(rclcpp::ReliabilityPolicy::BestEffort);
   lidar_qos.durability(rclcpp::DurabilityPolicy::Volatile);
   lidar_qos.history(rclcpp::HistoryPolicy::KeepLast);
 
@@ -176,7 +176,7 @@ void LidarProcessing::process_lidar(
   std::chrono::duration<float> elapsed_seconds = end - start;
   total_frame_++;
   total_time_ += elapsed_seconds.count() * 1000;
-  //RCLCPP_INFO(get_logger(), "Average lidar processing time %f ms", total_time_/total_frame_);
+  // RCLCPP_INFO(get_logger(), "Average lidar processing time %f ms", total_time_ / total_frame_);
 }
 
 void LidarProcessing::publish_lidar_result(
