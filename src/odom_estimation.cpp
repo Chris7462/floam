@@ -7,6 +7,7 @@
 // c++ header
 #include <chrono>
 #include <functional>
+#include <optional>
 #include <stdexcept>
 
 // pcl header
@@ -72,20 +73,24 @@ void OdomEstimation::initialize_ros_components()
 {
   // configure QoS profile for lidar point cloud transport
   rclcpp::QoS lidar_qos(queue_size_);
-  lidar_qos.reliability(rclcpp::ReliabilityPolicy::Reliable);
+  lidar_qos.reliability(rclcpp::ReliabilityPolicy::BestEffort);
   lidar_qos.durability(rclcpp::DurabilityPolicy::Volatile);
   lidar_qos.history(rclcpp::HistoryPolicy::KeepLast);
 
   // create reentrant callback group for parallel execution
   callback_group_ = create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
-  // create message filters subscribers
-  sub_edge_lidar_cloud_.subscribe(this, input_edge_topic_, lidar_qos.get_rmw_qos_profile());
-  sub_surf_lidar_cloud_.subscribe(this, input_surf_topic_, lidar_qos.get_rmw_qos_profile());
+  // create message filter subscribers with dedicated callback group
+  rclcpp::SubscriptionOptions sub_options;
+  sub_options.callback_group = callback_group_;
+
+  sub_edge_lidar_cloud_.subscribe(this, input_edge_topic_, lidar_qos, sub_options);
+  sub_surf_lidar_cloud_.subscribe(this, input_surf_topic_, lidar_qos, sub_options);
 
   // create exact time synchronizer
-  sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(
-    SyncPolicy(queue_size_), sub_edge_lidar_cloud_, sub_surf_lidar_cloud_);
+  sync_ = std::make_shared<message_filters::TimeSynchronizer<
+      sensor_msgs::msg::PointCloud2, sensor_msgs::msg::PointCloud2>>(
+      queue_size_, sub_edge_lidar_cloud_, sub_surf_lidar_cloud_);
   sync_->registerCallback(
     std::bind(&OdomEstimation::lidar_callback, this, std::placeholders::_1,
       std::placeholders::_2));
@@ -131,29 +136,32 @@ void OdomEstimation::lidar_callback(
 
 void OdomEstimation::timer_callback()
 {
-  // skip if already processing — odom_estimation_ is not thread-safe
-  if (processing_in_progress_.load()) {
+  // Atomically claim the "processing" slot — odom_estimation_ is not thread-safe
+  bool expected = false;
+  if (!processing_in_progress_.compare_exchange_strong(expected, true)) {
     return;
   }
 
-  PointCloudPair msg_pair;
+  std::optional<PointCloudPair> msg_pair;
 
   {
     std::lock_guard<std::mutex> lock(mutex_lock_);
-    if (point_cloud_buf_.empty()) {
-      return;
+    if (!point_cloud_buf_.empty()) {
+      msg_pair = point_cloud_buf_.front();
+      point_cloud_buf_.pop();
     }
-    msg_pair = point_cloud_buf_.front();
-    point_cloud_buf_.pop();
   }
 
-  processing_in_progress_.store(true);
+  if (!msg_pair.has_value()) {
+    processing_in_progress_.store(false);
+    return;
+  }
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_edge_in(new pcl::PointCloud<pcl::PointXYZI>());
   pcl::PointCloud<pcl::PointXYZI>::Ptr pointcloud_surf_in(new pcl::PointCloud<pcl::PointXYZI>());
-  pcl::fromROSMsg(*msg_pair.first, *pointcloud_edge_in);
-  pcl::fromROSMsg(*msg_pair.second, *pointcloud_surf_in);
-  rclcpp::Time pointcloud_time = msg_pair.first->header.stamp;
+  pcl::fromROSMsg(*msg_pair->first, *pointcloud_edge_in);
+  pcl::fromROSMsg(*msg_pair->second, *pointcloud_surf_in);
+  rclcpp::Time pointcloud_time = msg_pair->first->header.stamp;
 
   try {
     process_odom(pointcloud_edge_in, pointcloud_surf_in);
