@@ -85,11 +85,11 @@ void LidarMapping::initialize_ros_components()
 
   // create exact time synchronizer
   sync_ = std::make_shared<message_filters::TimeSynchronizer<
-      sensor_msgs::msg::PointCloud2, nav_msgs::msg::Odometry>>(
+        sensor_msgs::msg::PointCloud2, nav_msgs::msg::Odometry>>(
       queue_size_, sub_lidar_cloud_, sub_odometry_);
   sync_->registerCallback(
-    std::bind(&LidarMapping::lidar_odom_callback, this, std::placeholders::_1,
-      std::placeholders::_2));
+      std::bind(&LidarMapping::lidar_odom_callback, this, std::placeholders::_1,
+        std::placeholders::_2));
 
   pub_map_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(output_map_topic_, lidar_qos);
 

@@ -89,7 +89,7 @@ void OdomEstimation::initialize_ros_components()
 
   // create exact time synchronizer
   sync_ = std::make_shared<message_filters::TimeSynchronizer<
-      sensor_msgs::msg::PointCloud2, sensor_msgs::msg::PointCloud2>>(
+        sensor_msgs::msg::PointCloud2, sensor_msgs::msg::PointCloud2>>(
       queue_size_, sub_edge_lidar_cloud_, sub_surf_lidar_cloud_);
   sync_->registerCallback(
     std::bind(&OdomEstimation::lidar_callback, this, std::placeholders::_1,
