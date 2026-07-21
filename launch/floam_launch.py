@@ -15,6 +15,15 @@ def generate_launch_description():
         description='Use simulation time'
     )
 
+    declare_input_topic = DeclareLaunchArgument(
+        'input_topic',
+        description='Input lidar point cloud topic name. Required - no '
+                     'default, since it differs per data source '
+                     '(e.g. /kitti/velo or /carla/hero/lidar/point_cloud). '
+                     'The lidar_processing_node will refuse to start if '
+                     'this is not provided.'
+    )
+
     params = join(
         get_package_share_directory('floam'), 'param',
         'floam_params.yaml'
@@ -27,7 +36,10 @@ def generate_launch_description():
         output='screen',
         parameters=[
             params,
-            {'use_sim_time': LaunchConfiguration('use_sim_time')}
+            {
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'input_topic': LaunchConfiguration('input_topic'),
+            }
         ]
     )
 
@@ -55,6 +67,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         declare_use_sim_time,
+        declare_input_topic,
         lidar_processing_node,
         odom_estimation_node,
         lidar_mapping_node

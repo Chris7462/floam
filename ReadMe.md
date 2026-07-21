@@ -110,19 +110,17 @@ source install/setup.bash
 
 ## Usage
 
-All parameters are configured in `params/floam_params.yaml`. Edit this file
+All parameters are configured in `param/floam_params.yaml`. Edit this file
 to match your LiDAR sensor before launching.
 
-### Launch odometry only
-
+### KITTI data (raw bag)
 ```bash
-ros2 launch floam floam_launch.py
+ros2 launch floam floam_kitti_launch.py
 ```
 
-### Launch with RViz and rosbag playback
-
+### CARLA simulator
 ```bash
-ros2 launch floam floam_rviz_launch.py
+ros2 launch floam floam_carla_launch.py
 ```
 
 ---

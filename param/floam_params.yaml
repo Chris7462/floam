@@ -12,7 +12,11 @@ lidar_processing_node:
     # QoS parameters
     queue_size: 10
     # Topic parameters
-    input_topic: "kitti/velo"
+    # NOTE: input_topic is intentionally NOT set here. It has no safe default
+    # since it differs per data source (KITTI bag, CARLA simulator, live
+    # sensors, ...). It MUST be remapped via the launch file
+    # (e.g. input_topic:=/carla/hero/lidar/point_cloud), or the node will
+    # refuse to start.
     output_filtered_topic: "lidar_cloud_filtered"
     output_edge_topic: "lidar_cloud_edge"
     output_surf_topic: "lidar_cloud_surf"

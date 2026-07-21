@@ -52,6 +52,14 @@ void LidarProcessing::initialize_parameters()
         std::to_string(processing_frequency_));
   }
 
+  // validate input topic — no safe default since it differs per data source
+  if (input_topic_.empty()) {
+    throw std::runtime_error(
+      "input_topic is empty. This must be remapped by the launch file "
+      "(e.g. input_topic:=/carla/hero/lidar/point_cloud) - refusing to "
+      "start with an unspecified input source.");
+  }
+
   lidar_processing_.init(lidar_param_);
 
   RCLCPP_INFO(get_logger(),
